@@ -59,7 +59,7 @@ public class ModelSqlUtils {
                 .filter(field -> !field.getName().equals("id"))
                 .forEach(field -> sb.append(field.getName()).append("=").append(getVaue(field, data)).append(","));
         int length = sb.length();
-        sb.delete(length - 1, length).append(")");
+        sb.delete(length - 1, length);
         fields.stream()
                 .filter(field -> field.getName().equals("id"))
                 .findAny()
