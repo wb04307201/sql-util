@@ -1,6 +1,8 @@
 package cn.wubo.sql.util;
 
 import java.lang.reflect.Field;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -19,6 +21,7 @@ public class ModelSqlUtils {
             Object obj = field.get(data);
             if (obj != null) {
                 if (obj instanceof String) return "'" + obj + "'";
+                if (obj instanceof Date) return "'" + obj + "'";
                 else return String.valueOf(obj);
             } else {
                 return null;
