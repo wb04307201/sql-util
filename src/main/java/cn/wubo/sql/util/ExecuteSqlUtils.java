@@ -112,7 +112,7 @@ public class ExecuteSqlUtils {
      * @throws SQLException
      */
     public static <T> List<T> getResultMap(ResultSet rs, Class<T> clazz) throws SQLException {
-        log.debug("getResultMap ...... claz:{}",clazz.getName());
+        log.debug("getResultMap ...... class:{}",clazz.getName());
         List<T> result = new ArrayList<>();
         ResultSetMetaData rsmd = rs.getMetaData();
         int count = rsmd.getColumnCount();// 获取列的数量
