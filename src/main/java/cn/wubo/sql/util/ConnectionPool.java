@@ -4,7 +4,6 @@ import cn.wubo.sql.util.impl.DruidImpl;
 import cn.wubo.sql.util.impl.JdbcImpl;
 import com.alibaba.druid.DbType;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -67,7 +66,8 @@ public class ConnectionPool {
         return conn;
     }
 
-    private Connection findFreeConnection() throws SQLException {
+    private Connection findFreeConnection() {
+        log.debug("查找空闲数据库连接 ......");
         Optional<PooledConnection> optional = connections.stream().filter(ele -> !ele.isBusy()).findAny();
         if (optional.isPresent()) {
             PooledConnection pConn = optional.get();
@@ -96,6 +96,7 @@ public class ConnectionPool {
     }
 
     public void returnConnection(Connection conn) {
+        log.debug("返回数据库连接 ......");
         connections.stream()
                 .filter(ele -> conn == ele.getConnection())
                 .findAny()

@@ -23,6 +23,7 @@ public class ExecuteSqlUtils {
      * @return
      */
     public static List<Map<String, Object>> executeQuery(Connection connection, String sql, Map<Integer, Object> params) {
+        log.debug("executeQuery ...... sql:{} params:{}",sql,params);
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             for (Map.Entry<Integer, Object> entry : params.entrySet()) {
                 preparedStatement.setObject(entry.getKey(), entry.getValue());
@@ -34,6 +35,7 @@ public class ExecuteSqlUtils {
     }
 
     public static <T> List<T> executeQuery(Connection connection, String sql, Map<Integer, Object> params, Class<T> clasz) {
+        log.debug("executeQuery ...... sql:{} params:{}",sql,params);
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             for (Map.Entry<Integer, Object> entry : params.entrySet()) {
                 preparedStatement.setObject(entry.getKey(), entry.getValue());
@@ -64,6 +66,7 @@ public class ExecuteSqlUtils {
     }
 
     public static int executeUpdate(Connection connection, String sql, Map<Integer, Object> params) {
+        log.debug("executeUpdate ...... sql:{} params:{}",sql,params);
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             for (Map.Entry<Integer, Object> entry : params.entrySet()) {
                 preparedStatement.setObject(entry.getKey(), entry.getValue());
@@ -83,6 +86,7 @@ public class ExecuteSqlUtils {
      * @throws SQLException
      */
     public static List<Map<String, Object>> getResultMap(ResultSet rs) throws SQLException {
+        log.debug("getResultMap ...... ");
         List<Map<String, Object>> result = new ArrayList<>();
         ResultSetMetaData rsmd = rs.getMetaData();
         int count = rsmd.getColumnCount();// 获取列的数量
@@ -107,7 +111,8 @@ public class ExecuteSqlUtils {
      * @return
      * @throws SQLException
      */
-    public static <T> List<T> getResultMap(ResultSet rs, Class<T> claz) throws SQLException {
+    public static <T> List<T> getResultMap(ResultSet rs, Class<T> clazz) throws SQLException {
+        log.debug("getResultMap ...... claz:{}",clazz.getName());
         List<T> result = new ArrayList<>();
         ResultSetMetaData rsmd = rs.getMetaData();
         int count = rsmd.getColumnCount();// 获取列的数量
@@ -120,7 +125,7 @@ public class ExecuteSqlUtils {
             Map<String, Object> row = new HashMap<>();
             for (int i = 1; i <= count; i++)
                 row.put(headers[i - 1], rs.getObject(i));
-            result.add(JSON.parseObject(JSON.toJSONString(row), claz));
+            result.add(JSON.parseObject(JSON.toJSONString(row), clazz));
         }
         return result;
     }
