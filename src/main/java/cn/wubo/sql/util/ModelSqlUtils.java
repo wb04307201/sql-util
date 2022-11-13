@@ -8,6 +8,11 @@ import java.util.stream.Collectors;
 
 public class ModelSqlUtils {
 
+    /**
+     * 反射获取类和父类的字段，并排除合成字段
+     * @param clasz
+     * @param fields
+     */
     private static void getFields(Class<?> clasz, List<Field> fields) {
         if (clasz != null) {
             fields.addAll(Arrays.stream(clasz.getDeclaredFields()).filter(field -> !field.isSynthetic()).collect(Collectors.toList()));
@@ -15,6 +20,13 @@ public class ModelSqlUtils {
         }
     }
 
+    /**
+     * 对值的处理
+     * @param field
+     * @param data
+     * @return
+     * @param <T>
+     */
     private static <T> String getVaue(Field field, T data) {
         try {
             field.setAccessible(true);
@@ -31,6 +43,11 @@ public class ModelSqlUtils {
         }
     }
 
+    /**
+     * 转换数据库类型
+     * @param field
+     * @return
+     */
     private static String getType(Field field) {
         if (field.getType().equals(Integer.class)) {
             return "int";
@@ -39,6 +56,13 @@ public class ModelSqlUtils {
         }
     }
 
+    /**
+     * 插入数据sql
+     * @param tableName 表名
+     * @param data 数据
+     * @return sql
+     * @param <T> 实体类
+     */
     public static <T> String insertSql(String tableName, T data) {
         List<Field> fields = new ArrayList<>();
         getFields(data.getClass(), fields);
@@ -53,6 +77,13 @@ public class ModelSqlUtils {
         return sb.toString();
     }
 
+    /**
+     * 根据id更新数据sql
+     * @param tableName 表名
+     * @param data 数据
+     * @return sql
+     * @param <T> 实体类
+     */
     public static <T> String updateByIdSql(String tableName, T data) {
         List<Field> fields = new ArrayList<>();
         getFields(data.getClass(), fields);
@@ -70,6 +101,13 @@ public class ModelSqlUtils {
         return sb.toString();
     }
 
+    /**
+     * 根据id删除数据sql
+     * @param tableName 表名
+     * @param data 数据
+     * @return sql
+     * @param <T> 实体类
+     */
     public static <T> String deleteByIdSql(String tableName, T data) {
         List<Field> fields = new ArrayList<>();
         getFields(data.getClass(), fields);
@@ -82,6 +120,13 @@ public class ModelSqlUtils {
         return sb.toString();
     }
 
+    /**
+     * 查询数据sql
+     * @param tableName 表名
+     * @param data 数据
+     * @return sql
+     * @param <T> 实体类
+     */
     public static <T> String selectSql(String tableName, T data) {
         List<Field> fields = new ArrayList<>();
         getFields(data.getClass(), fields);
@@ -95,6 +140,13 @@ public class ModelSqlUtils {
         return str.indexOf("and") > 0 ? str.replaceFirst("and", "where") : str;
     }
 
+    /**
+     * 创建表sql
+     * @param tableName 表名
+     * @param data 数据
+     * @return sql
+     * @param <T> 实体类
+     */
     public static <T> String createSql(String tableName, T data) {
         List<Field> fields = new ArrayList<>();
         getFields(data.getClass(), fields);
@@ -109,6 +161,11 @@ public class ModelSqlUtils {
         return sb.toString();
     }
 
+    /**
+     * 删除表sql
+     * @param tableName 表名
+     * @return sql
+     */
     public static String dropSql(String tableName) {
         return "drop table " + tableName;
     }

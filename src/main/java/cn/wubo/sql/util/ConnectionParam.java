@@ -2,8 +2,10 @@ package cn.wubo.sql.util;
 
 import lombok.Data;
 
+import java.io.Serializable;
+
 @Data
-public class ConnectionParam {
+public class ConnectionParam implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -17,4 +19,13 @@ public class ConnectionParam {
     private long waitTime; // 取得连接的最大等待时间
     private int incrementalConnections = 5; //连接池自动增加连接的数量
     private String connections = "jdbc"; //连接池自动增加连接的数量
+
+    public ConnectionParam(){
+    }
+
+    public ConnectionParam(String url,String user,String password){
+        this.url = url;
+        this.user = user;
+        this.password = password;
+    }
 }

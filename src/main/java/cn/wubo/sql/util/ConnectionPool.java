@@ -10,6 +10,17 @@ import java.sql.SQLException;
 import java.util.Optional;
 import java.util.Vector;
 
+/**
+ * 1.初始化连接时，默认使用了一个h2数据库
+ * private static ConnectionPool connectionPool = new ConnectionPool(new ConnectionParam());
+ * 2.获取一个connection
+ * Connection conn = connectionPool.getConnection();
+ * 3.如果需要事务，使用setAutoCommit关闭自动提交，并使用commit手动提交到数据库
+ * conn.setAutoCommit(false);
+ * conn.commit();
+ * 4.最后需要将connection放回连接池
+ * connectionPool.returnConnection(conn);
+ */
 @Slf4j
 public class ConnectionPool {
 
