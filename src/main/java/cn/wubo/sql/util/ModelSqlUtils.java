@@ -1,9 +1,10 @@
 package cn.wubo.sql.util;
 
 import java.lang.reflect.Field;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class ModelSqlUtils {
@@ -152,10 +153,7 @@ public class ModelSqlUtils {
         getFields(data.getClass(), fields);
         StringBuilder sb = new StringBuilder();
         sb.append("create table ").append(tableName).append(" (");
-        fields.forEach(field -> {
-            field.getType().equals(String.class);
-            sb.append(field.getName()).append(" ").append(getType(field)).append(",");
-        });
+        fields.forEach(field -> sb.append(field.getName()).append(" ").append(getType(field)).append(","));
         int length = sb.length();
         sb.delete(length - 1, length).append(")");
         return sb.toString();
