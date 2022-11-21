@@ -9,7 +9,9 @@ import java.util.stream.Collectors;
 
 public class ModelSqlUtils {
 
-    private final static String AND = " and ";
+    private ModelSqlUtils(){}
+
+    private static final String AND = " and ";
 
     /**
      * 反射获取类和父类的字段，并排除合成字段
@@ -140,7 +142,7 @@ public class ModelSqlUtils {
             if (strValue != null) sb.append(AND).append(field.getName()).append("=").append(getVaue(field, data));
         });
         String str = sb.toString();
-        return str.indexOf(AND) > 0 ? str.replaceFirst(AND, " where ") : str;
+        return str.indexOf(AND) > -1 ? str.replaceFirst(AND, " where ") : str;
     }
 
     /**
