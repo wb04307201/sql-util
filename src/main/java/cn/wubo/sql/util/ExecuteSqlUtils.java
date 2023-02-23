@@ -4,7 +4,6 @@ import cn.wubo.sql.util.entity.DataTableEntity;
 import cn.wubo.sql.util.entity.MethodEntity;
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.PagerUtils;
-import com.alibaba.fastjson.JSON;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.InvocationTargetException;
