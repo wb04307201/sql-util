@@ -142,7 +142,7 @@ public class ModelSqlUtils {
             if (strValue != null) sb.append(AND).append(field.getName()).append("=").append(getVaue(field, data));
         });
         String str = sb.toString();
-        return str.indexOf(AND) > -1 ? str.replaceFirst(AND, " where ") : str;
+        return str.contains(AND) ? str.replaceFirst(AND, " where ") : str;
     }
 
     /**

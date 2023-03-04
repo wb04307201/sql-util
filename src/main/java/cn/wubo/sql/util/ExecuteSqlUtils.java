@@ -17,10 +17,21 @@ public class ExecuteSqlUtils {
     /**
      * 执行查询
      *
-     * @param connection
-     * @param sql
-     * @param params
-     * @return
+     * @param connection 数据库连接
+     * @param sql        sql
+     * @return List<Map < String, Object>>
+     */
+    public static List<Map<String, Object>> executeQuery(Connection connection, String sql) {
+        return executeQuery(connection, sql, new HashMap<>());
+    }
+
+    /**
+     * 执行查询
+     *
+     * @param connection 数据库连接
+     * @param sql        sql
+     * @param params     参数
+     * @return List<Map < String, Object>>
      */
     public static List<Map<String, Object>> executeQuery(Connection connection, String sql, Map<Integer, Object> params) {
         log.debug("executeQuery ...... sql:{} params:{}", sql, params);
@@ -34,6 +45,29 @@ public class ExecuteSqlUtils {
         }
     }
 
+    /**
+     * 执行查询
+     *
+     * @param connection 数据库连接
+     * @param sql        sql
+     * @param clasz      类
+     * @param <T>        泛型
+     * @return List<T>
+     */
+    public static <T> List<T> executeQuery(Connection connection, String sql, Class<T> clasz) {
+        return executeQuery(connection, sql, new HashMap<>(), clasz);
+    }
+
+    /**
+     * 执行查询
+     *
+     * @param connection 数据库连接
+     * @param sql        sql
+     * @param params     参数
+     * @param clasz      类
+     * @param <T>        泛型
+     * @return List<T>
+     */
     public static <T> List<T> executeQuery(Connection connection, String sql, Map<Integer, Object> params, Class<T> clasz) {
         log.debug("executeQuery ...... sql:{} params:{}", sql, params);
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
@@ -49,22 +83,43 @@ public class ExecuteSqlUtils {
     /**
      * 执行分页查询
      *
-     * @param connection
-     * @param sql
-     * @param params
-     * @param dbType
-     * @param offset
-     * @param count
-     * @return
+     * @param connection 数据库连接
+     * @param sql        sql
+     * @param params     参数
+     * @param dbType     数据库类型
+     * @param offset     偏移量
+     * @param count      数量
+     * @return List<Map < String, Object>>
      */
     public static List<Map<String, Object>> executeQueryByPage(Connection connection, String sql, Map<Integer, Object> params, String dbType, int offset, int count) {
         return executeQuery(connection, PagerUtils.limit(sql, DbType.valueOf(dbType), offset, count), params);
     }
 
+    /**
+     * 执行分页查询
+     *
+     * @param connection 数据库连接
+     * @param sql        sql
+     * @param params     参数
+     * @param dbType     数据库类型
+     * @param offset     偏移量
+     * @param count      数量
+     * @param clasz      类
+     * @param <T>        泛型
+     * @return List<T>
+     */
     public static <T> List<T> executeQueryByPage(Connection connection, String sql, Map<Integer, Object> params, String dbType, int offset, int count, Class<T> clasz) {
         return executeQuery(connection, PagerUtils.limit(sql, DbType.valueOf(dbType), offset, count), params, clasz);
     }
 
+    /**
+     * 执行数据库操作
+     *
+     * @param connection 数据库连接
+     * @param sql        sql
+     * @param params     参数
+     * @return int
+     */
     public static int executeUpdate(Connection connection, String sql, Map<Integer, Object> params) {
         log.debug("executeUpdate ...... sql:{} params:{}", sql, params);
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
@@ -107,8 +162,13 @@ public class ExecuteSqlUtils {
     /**
      * 处理返回值
      *
-     * @param rs
-     * @return
+     * @param rs    游标
+     * @param clazz 类
+     * @param <T>   泛型
+     * @return List<T>
+     * @throws NoSuchMethodException
+     * @throws InstantiationException
+     * @throws IllegalAccessException
      * @throws SQLException
      */
     public static <T> List<T> getResultMap(ResultSet rs, Class<T> clazz) throws NoSuchMethodException, InstantiationException, IllegalAccessException, SQLException {
@@ -192,20 +252,35 @@ public class ExecuteSqlUtils {
         return row;
     }
 
-    public static boolean isTableExists(Connection conn, String tableName, DbType dbType) {
+    /**
+     * 判断表是否存在
+     *
+     * @param connection 数据库连接
+     * @param tableName  表名
+     * @return Boolean
+     */
+    public static Boolean isTableExists(Connection connection, String tableName) {
+        return isTableExists(connection, tableName, null);
+    }
+
+    /**
+     * 判断表是否存在
+     *
+     * @param connection 数据库连接
+     * @param tableName  表名
+     * @param dbType     数据库雷西看那个
+     * @return boolean
+     */
+    public static Boolean isTableExists(Connection connection, String tableName, DbType dbType) {
         boolean isTableExists = false;
         try {
             if (DbType.h2.equals(dbType) || DbType.oracle.equals(dbType)) tableName = tableName.toUpperCase();
             else tableName = tableName.toLowerCase();
-            ResultSet rset = conn.getMetaData().getTables(null, null, tableName, null);
+            ResultSet rset = connection.getMetaData().getTables(null, null, tableName, null);
             if (rset.next()) isTableExists = true;
         } catch (SQLException e) {
             log.error(e.getMessage(), e);
         }
         return isTableExists;
-    }
-
-    public static Boolean isTableExists(Connection conn, String tableName) {
-        return isTableExists(conn, tableName, null);
     }
 }
