@@ -15,7 +15,7 @@ public class DemoController {
 
     @GetMapping(value = "/test")
     public List<User> test() throws SQLException, InterruptedException {
-        //获取连接池
+        //从连接池获取连接
         Connection conn = connectionPool.getConnection();
         //检测表是否存在，不存在创建表
         if (!ExecuteSqlUtils.isTableExists(conn, "userInfo", connectionPool.getDbType())) {
@@ -28,6 +28,7 @@ public class DemoController {
         ExecuteSqlUtils.executeUpdate(conn, ModelSqlUtils.insertSql("userInfo", user), new HashMap<>());
         //查询
         List<User> list = ExecuteSqlUtils.executeQuery(conn, ModelSqlUtils.selectSql("userInfo", new User()), new HashMap<>(), User.class);
+        //释放连接
         connectionPool.returnConnection(conn);
         return list;
     }
