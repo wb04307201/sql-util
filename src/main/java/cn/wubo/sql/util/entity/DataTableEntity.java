@@ -1,5 +1,8 @@
 package cn.wubo.sql.util.entity;
 
+import lombok.Data;
+
+@Data
 public class DataTableEntity {
     //查询出的ReslutSet中的字段数量
     private int columnCount = 0;
@@ -8,29 +11,21 @@ public class DataTableEntity {
     //字段类型数组
     private int[] columnTypes;
 
-    // 默认构造器
     public DataTableEntity() {
         this(0);
     }
 
-    //初始化构造器
     public DataTableEntity(int columnCount) {
         this.columnCount = columnCount;
         this.columnNames = new String[columnCount];
         this.columnTypes = new int[columnCount];
     }
 
-    //获取字段数量
-    public int getColumnCount() {
-        return this.columnCount;
-    }
-
-    //获取字段名称数组
-    public String[] getColumnNames() {
-        return this.columnNames;
-    }
-
-    //获取第index个字段名称，如果index字段不存在，则抛出ArrayIndexOutOfBoundsException异常
+    /**
+     * 获取第index个字段名称，如果index字段不存在，则抛出ArrayIndexOutOfBoundsException异常
+     * @param index
+     * @return
+     */
     public String getColumnName(int index) {
         if (index <= this.columnCount) {
             return this.columnNames[index];
@@ -39,12 +34,11 @@ public class DataTableEntity {
         }
     }
 
-    //设置字段名称数组
-    public void setColumnNames(String[] columnNames) {
-        this.columnNames = columnNames;
-    }
-
-    //设置第index个字段名称，如果index字段不存在，则抛出ArrayIndexOutOfBoundsException异常
+    /**
+     * 设置第index个字段名称，如果index字段不存在，则抛出ArrayIndexOutOfBoundsException异常
+     * @param columnName
+     * @param index
+     */
     public void setColumnName(String columnName, int index) {
         if (index <= this.columnCount) {
             this.columnNames[index] = columnName;
@@ -53,12 +47,11 @@ public class DataTableEntity {
         }
     }
 
-    //获取字段类型数组
-    public int[] getColumnTypes() {
-        return this.columnTypes;
-    }
-
-    //获取字段类型
+    /**
+     * 获取字段类型，不存在则抛出ArrayIndexOutOfBoundsException异常
+     * @param index
+     * @return
+     */
     public int getColumnType(int index) {
         if (index <= this.columnCount) {
             return this.columnTypes[index];
@@ -67,12 +60,11 @@ public class DataTableEntity {
         }
     }
 
-    //设置字段类型数组
-    public void setColumnTypes(int[] columnTypes) {
-        this.columnTypes = columnTypes;
-    }
-
-    //获取字段类型
+    /**
+     * 获取字段类型，不存在则抛出ArrayIndexOutOfBoundsException异常
+     * @param columnType
+     * @param index
+     */
     public void setColumnType(int columnType, int index) {
         if (index <= this.columnCount) {
             this.columnTypes[index] = columnType;

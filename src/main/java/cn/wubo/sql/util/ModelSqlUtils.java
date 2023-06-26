@@ -1,6 +1,7 @@
 package cn.wubo.sql.util;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -9,28 +10,38 @@ import java.util.stream.Collectors;
 
 public class ModelSqlUtils {
 
-    private ModelSqlUtils(){}
+    private ModelSqlUtils() {
+    }
 
     private static final String AND = " and ";
 
     /**
-     * 反射获取类和父类的字段，并排除合成字段
-     * @param clasz
-     * @param fields
+     * 反射获取类和父类的字段
+     * 排除合成字段
+     * 排除static final
+     *
+     * @param clasz 类
+     * @param fields Field集合
      */
     private static void getFields(Class<?> clasz, List<Field> fields) {
         if (clasz != null) {
-            fields.addAll(Arrays.stream(clasz.getDeclaredFields()).filter(field -> !field.isSynthetic()).collect(Collectors.toList()));
+            fields.addAll(
+                    Arrays.stream(clasz.getDeclaredFields())
+                            .filter(field -> !field.isSynthetic())
+                            .filter(field -> !(Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(field.getModifiers())))
+                            .collect(Collectors.toList())
+            );
             getFields(clasz.getSuperclass(), fields);
         }
     }
 
     /**
      * 对值的处理
+     *
      * @param field
      * @param data
-     * @return
      * @param <T>
+     * @return
      */
     private static <T> String getVaue(Field field, T data) {
         try {
@@ -50,6 +61,7 @@ public class ModelSqlUtils {
 
     /**
      * 转换数据库类型
+     *
      * @param field
      * @return
      */
@@ -63,10 +75,11 @@ public class ModelSqlUtils {
 
     /**
      * 插入数据sql
+     *
      * @param tableName 表名
-     * @param data 数据
+     * @param data      数据
+     * @param <T>       实体类
      * @return sql
-     * @param <T> 实体类
      */
     public static <T> String insertSql(String tableName, T data) {
         List<Field> fields = new ArrayList<>();
@@ -84,10 +97,11 @@ public class ModelSqlUtils {
 
     /**
      * 根据id更新数据sql
+     *
      * @param tableName 表名
-     * @param data 数据
+     * @param data      数据
+     * @param <T>       实体类
      * @return sql
-     * @param <T> 实体类
      */
     public static <T> String updateByIdSql(String tableName, T data) {
         List<Field> fields = new ArrayList<>();
@@ -108,10 +122,11 @@ public class ModelSqlUtils {
 
     /**
      * 根据id删除数据sql
+     *
      * @param tableName 表名
-     * @param data 数据
+     * @param data      数据
+     * @param <T>       实体类
      * @return sql
-     * @param <T> 实体类
      */
     public static <T> String deleteByIdSql(String tableName, T data) {
         List<Field> fields = new ArrayList<>();
@@ -127,10 +142,11 @@ public class ModelSqlUtils {
 
     /**
      * 查询数据sql
+     *
      * @param tableName 表名
-     * @param data 数据
+     * @param data      数据
+     * @param <T>       实体类
      * @return sql
-     * @param <T> 实体类
      */
     public static <T> String selectSql(String tableName, T data) {
         List<Field> fields = new ArrayList<>();
@@ -147,10 +163,11 @@ public class ModelSqlUtils {
 
     /**
      * 创建表sql
+     *
      * @param tableName 表名
-     * @param data 数据
+     * @param data      数据
+     * @param <T>       实体类
      * @return sql
-     * @param <T> 实体类
      */
     public static <T> String createSql(String tableName, T data) {
         List<Field> fields = new ArrayList<>();
@@ -165,6 +182,7 @@ public class ModelSqlUtils {
 
     /**
      * 删除表sql
+     *
      * @param tableName 表名
      * @return sql
      */

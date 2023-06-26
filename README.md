@@ -2,7 +2,9 @@
 
 [![](https://jitpack.io/v/com.gitee.wb04307201/sql-util.svg)](https://jitpack.io/#com.gitee.wb04307201/sql-util)
 
-ConnectionPool 一个简单的链接池，能快速的的初始化一个h2数据库  
+ConnectionPool 一个简单的链接池  
+通过新建ConnectionParam对象能快速的的初始化一个h2数据库连接池  
+也可在新建ConnectionParam对象时传入其他数据库配置信息  
 ExecuteSqlUtils sql语句执行工具  
 ModelSqlUtils 从实体类生成建表、删表、增删改查等sql工具 
 
@@ -15,7 +17,7 @@ public class DemoController {
 
     @GetMapping(value = "/test")
     public List<User> test() throws SQLException, InterruptedException {
-        //获取连接池
+        //从连接池获取连接
         Connection conn = connectionPool.getConnection();
         //检测表是否存在，不存在创建表
         if (!ExecuteSqlUtils.isTableExists(conn, "userInfo", connectionPool.getDbType())) {
@@ -28,6 +30,7 @@ public class DemoController {
         ExecuteSqlUtils.executeUpdate(conn, ModelSqlUtils.insertSql("userInfo", user), new HashMap<>());
         //查询
         List<User> list = ExecuteSqlUtils.executeQuery(conn, ModelSqlUtils.selectSql("userInfo", new User()), new HashMap<>(), User.class);
+        //释放连接
         connectionPool.returnConnection(conn);
         return list;
     }

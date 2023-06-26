@@ -226,24 +226,26 @@ public class ExecuteSqlUtils {
                 //值和方法都不为空,这里方法名不为空即可,值可以为空的
                 //判断字段的类型,方法名，参数类型
                 MethodEntity methodEntity = hmMethods.get(strMethodKey);
-                String methodName = methodEntity.getMethodName();
-                int repeatMethodNum = methodEntity.getRepeatMethodNum();
-                Class[] paramTypes = methodEntity.getMethodParamTypes();
-                Method method = clazz.getMethod(methodName, paramTypes);
-                //如果重载方法数 > 1，则判断是否有java.lang.IllegalArgumentException异常，循环处理
-                try {
-                    //设置参数,实体对象，实体对象方法参数
-                    method.invoke(row, new Object[]{objColumnValue});
-                } catch (IllegalArgumentException | IllegalAccessException | InvocationTargetException e) {
-                    //处理重载方法
-                    for (int j = 1; j < repeatMethodNum; j++) {
-                        try {
-                            Class[] repeatParamTypes = methodEntity.getRepeatMethodsParamTypes(j - 1);
-                            method = clazz.getMethod(methodName, repeatParamTypes);
-                            method.invoke(row, new Object[]{objColumnValue});
-                            break;
-                        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException ex) {
-                            throw new RuntimeException(ex);
+                if (methodEntity != null) {
+                    String methodName = methodEntity.getMethodName();
+                    int repeatMethodNum = methodEntity.getRepeatMethodNum();
+                    Class[] paramTypes = methodEntity.getMethodParamTypes();
+                    Method method = clazz.getMethod(methodName, paramTypes);
+                    //如果重载方法数 > 1，则判断是否有java.lang.IllegalArgumentException异常，循环处理
+                    try {
+                        //设置参数,实体对象，实体对象方法参数
+                        method.invoke(row, new Object[]{objColumnValue});
+                    } catch (IllegalArgumentException | IllegalAccessException | InvocationTargetException e) {
+                        //处理重载方法
+                        for (int j = 1; j < repeatMethodNum; j++) {
+                            try {
+                                Class[] repeatParamTypes = methodEntity.getRepeatMethodsParamTypes(j - 1);
+                                method = clazz.getMethod(methodName, repeatParamTypes);
+                                method.invoke(row, new Object[]{objColumnValue});
+                                break;
+                            } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException ex) {
+                                throw new RuntimeException(ex);
+                            }
                         }
                     }
                 }
