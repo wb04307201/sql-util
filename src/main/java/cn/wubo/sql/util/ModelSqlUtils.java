@@ -2,10 +2,12 @@ package cn.wubo.sql.util;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.math.BigDecimal;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ModelSqlUtils {
@@ -20,7 +22,7 @@ public class ModelSqlUtils {
      * 排除合成字段
      * 排除static final
      *
-     * @param clasz 类
+     * @param clasz  类
      * @param fields Field集合
      */
     private static void getFields(Class<?> clasz, List<Field> fields) {
@@ -68,6 +70,26 @@ public class ModelSqlUtils {
     private static String getType(Field field) {
         if (field.getType().equals(Integer.class)) {
             return "int";
+        } else if (field.getType().equals(Long.class)) {
+            return "bigint";
+        } else if (field.getType().equals(Float.class)) {
+            return "float";
+        } else if (field.getType().equals(Double.class)) {
+            return "double";
+        } else if (field.getType().equals(BigDecimal.class)) {
+            return "numeric";
+        } else if (field.getType().equals(java.util.Date.class) || field.getType().equals(java.sql.Date.class)) {
+            return "date";
+        } else if (field.getType().equals(Time.class)) {
+            return "time";
+        } else if (field.getType().equals(Timestamp.class) || field.getType().equals(Calendar.class)) {
+            return "timestamp";
+        } else if (field.getType().equals(Boolean.class)) {
+            return "bit";
+        } else if (field.getType().equals(Blob.class)) {
+            return "blob";
+        } else if (field.getType().equals(Clob.class)) {
+            return "clob";
         } else {
             return "varchar2";
         }
