@@ -1,5 +1,7 @@
 package cn.wubo.sql.util;
 
+import cn.wubo.sql.util.exception.SqlUtilException;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
@@ -57,7 +59,7 @@ public class ModelSqlUtils {
                 return null;
             }
         } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
+            throw new SqlUtilException(e);
         }
     }
 
@@ -135,11 +137,14 @@ public class ModelSqlUtils {
                 .forEach(field -> sb.append(field.getName()).append("=").append(getVaue(field, data)).append(","));
         int length = sb.length();
         sb.delete(length - 1, length);
-        fields.stream()
+        Optional<Field> optional = fields.stream()
                 .filter(field -> field.getName().equals("id"))
-                .findAny()
-                .ifPresent(field -> sb.append(" where id=").append(getVaue(field, data)));
-        return sb.toString();
+                .findAny();
+        if (optional.isPresent()) {
+            String value = getVaue(optional.get(), data);
+            if (value != null) return sb.append(" where id=").append(value).toString();
+        }
+        throw new SqlUtilException("id值不能为空");
     }
 
     /**
@@ -155,11 +160,14 @@ public class ModelSqlUtils {
         getFields(data.getClass(), fields);
         StringBuilder sb = new StringBuilder();
         sb.append("delete from ").append(tableName);
-        fields.stream()
+        Optional<Field> optional = fields.stream()
                 .filter(field -> field.getName().equals("id"))
-                .findAny()
-                .ifPresent(field -> sb.append(" where id=").append(getVaue(field, data)));
-        return sb.toString();
+                .findAny();
+        if (optional.isPresent()) {
+            String value = getVaue(optional.get(), data);
+            if (value != null) return sb.append(" where id=").append(value).toString();
+        }
+        throw new SqlUtilException("id值不能为空");
     }
 
     /**

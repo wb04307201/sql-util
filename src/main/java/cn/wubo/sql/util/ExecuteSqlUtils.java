@@ -2,6 +2,7 @@ package cn.wubo.sql.util;
 
 import cn.wubo.sql.util.entity.DataTableEntity;
 import cn.wubo.sql.util.entity.MethodEntity;
+import cn.wubo.sql.util.exception.SqlUtilException;
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.PagerUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +14,9 @@ import java.util.*;
 
 @Slf4j
 public class ExecuteSqlUtils {
+
+    private ExecuteSqlUtils() {
+    }
 
     /**
      * 执行查询
@@ -41,7 +45,7 @@ public class ExecuteSqlUtils {
             }
             return getResultMap(preparedStatement.executeQuery());
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new SqlUtilException(e);
         }
     }
 
@@ -76,7 +80,7 @@ public class ExecuteSqlUtils {
             }
             return getResultMap(preparedStatement.executeQuery(), clasz);
         } catch (SQLException | NoSuchMethodException | InstantiationException | IllegalAccessException e) {
-            throw new RuntimeException(e);
+            throw new SqlUtilException(e);
         }
     }
 
@@ -128,7 +132,7 @@ public class ExecuteSqlUtils {
             }
             return preparedStatement.executeUpdate();
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new SqlUtilException(e);
         }
     }
 
@@ -244,7 +248,7 @@ public class ExecuteSqlUtils {
                                 method.invoke(row, new Object[]{objColumnValue});
                                 break;
                             } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException ex) {
-                                throw new RuntimeException(ex);
+                                throw new SqlUtilException(ex);
                             }
                         }
                     }
