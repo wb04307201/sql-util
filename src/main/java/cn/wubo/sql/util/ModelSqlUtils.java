@@ -1,6 +1,6 @@
 package cn.wubo.sql.util;
 
-import cn.wubo.sql.util.exception.SqlUtilException;
+import cn.wubo.sql.util.exception.ModelSqlUtilsException;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -12,6 +12,9 @@ import java.sql.Timestamp;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * 根据实体类生成sql
+ */
 public class ModelSqlUtils {
 
     private ModelSqlUtils() {
@@ -29,12 +32,7 @@ public class ModelSqlUtils {
      */
     private static void getFields(Class<?> clasz, List<Field> fields) {
         if (clasz != null) {
-            fields.addAll(
-                    Arrays.stream(clasz.getDeclaredFields())
-                            .filter(field -> !field.isSynthetic())
-                            .filter(field -> !(Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(field.getModifiers())))
-                            .collect(Collectors.toList())
-            );
+            fields.addAll(Arrays.stream(clasz.getDeclaredFields()).filter(field -> !field.isSynthetic()).filter(field -> !(Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(field.getModifiers()))).collect(Collectors.toList()));
             getFields(clasz.getSuperclass(), fields);
         }
     }
@@ -59,7 +57,7 @@ public class ModelSqlUtils {
                 return null;
             }
         } catch (IllegalAccessException e) {
-            throw new SqlUtilException(e);
+            throw new ModelSqlUtilsException(e);
         }
     }
 
@@ -132,19 +130,15 @@ public class ModelSqlUtils {
         getFields(data.getClass(), fields);
         StringBuilder sb = new StringBuilder();
         sb.append("update ").append(tableName).append(" set ");
-        fields.stream()
-                .filter(field -> !field.getName().equals("id"))
-                .forEach(field -> sb.append(field.getName()).append("=").append(getVaue(field, data)).append(","));
+        fields.stream().filter(field -> !field.getName().equals("id")).forEach(field -> sb.append(field.getName()).append("=").append(getVaue(field, data)).append(","));
         int length = sb.length();
         sb.delete(length - 1, length);
-        Optional<Field> optional = fields.stream()
-                .filter(field -> field.getName().equals("id"))
-                .findAny();
+        Optional<Field> optional = fields.stream().filter(field -> field.getName().equals("id")).findAny();
         if (optional.isPresent()) {
             String value = getVaue(optional.get(), data);
             if (value != null) return sb.append(" where id=").append(value).toString();
         }
-        throw new SqlUtilException("id值不能为空");
+        throw new ModelSqlUtilsException("id值不能为空");
     }
 
     /**
@@ -160,14 +154,12 @@ public class ModelSqlUtils {
         getFields(data.getClass(), fields);
         StringBuilder sb = new StringBuilder();
         sb.append("delete from ").append(tableName);
-        Optional<Field> optional = fields.stream()
-                .filter(field -> field.getName().equals("id"))
-                .findAny();
+        Optional<Field> optional = fields.stream().filter(field -> field.getName().equals("id")).findAny();
         if (optional.isPresent()) {
             String value = getVaue(optional.get(), data);
             if (value != null) return sb.append(" where id=").append(value).toString();
         }
-        throw new SqlUtilException("id值不能为空");
+        throw new ModelSqlUtilsException("id值不能为空");
     }
 
     /**
