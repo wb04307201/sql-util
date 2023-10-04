@@ -187,19 +187,23 @@ public class ModelSqlUtils {
      * 创建表sql
      *
      * @param tableName 表名
-     * @param data      数据
+     * @param clazz     实体class
      * @param <T>       实体类
      * @return sql
      */
-    public static <T> String createSql(String tableName, T data) {
+    public static <T> String createSql(String tableName, Class<T> clazz) {
         List<Field> fields = new ArrayList<>();
-        getFields(data.getClass(), fields);
+        getFields(clazz, fields);
         StringBuilder sb = new StringBuilder();
         sb.append("create table ").append(tableName).append(" (");
         fields.forEach(field -> sb.append(field.getName()).append(" ").append(getType(field)).append(","));
         int length = sb.length();
         sb.delete(length - 1, length).append(")");
         return sb.toString();
+    }
+
+    public static <T> String createSql(String tableName, T data) {
+        return createSql(tableName, data.getClass());
     }
 
     /**
