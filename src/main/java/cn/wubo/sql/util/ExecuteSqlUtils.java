@@ -102,6 +102,10 @@ public class ExecuteSqlUtils {
         return executeQueryByPage(connection, sql, params, DbType.of(dbType), offset, count);
     }
 
+    public static List<Map<String, Object>> executeQueryByPage(Connection connection, String sql, DbType dbType, int offset, int count) {
+        return executeQueryByPage(connection, sql, new HashMap<>(), dbType, offset, count);
+    }
+
     public static List<Map<String, Object>> executeQueryByPage(Connection connection, String sql, String dbType, int offset, int count) {
         return executeQueryByPage(connection, sql, new HashMap<>(), DbType.of(dbType), offset, count);
     }
@@ -125,6 +129,10 @@ public class ExecuteSqlUtils {
 
     public static <T> List<T> executeQueryByPage(Connection connection, String sql, Map<Integer, Object> params, String dbType, int offset, int count, Class<T> clazz) {
         return executeQueryByPage(connection, sql, params, DbType.of(dbType), offset, count, clazz);
+    }
+
+    public static <T> List<T> executeQueryByPage(Connection connection, String sql, DbType dbType, int offset, int count, Class<T> clazz) {
+        return executeQueryByPage(connection, sql, new HashMap<>(), dbType, offset, count, clazz);
     }
 
     public static <T> List<T> executeQueryByPage(Connection connection, String sql, String dbType, int offset, int count, Class<T> clazz) {
