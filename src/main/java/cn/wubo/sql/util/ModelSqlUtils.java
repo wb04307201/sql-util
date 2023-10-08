@@ -108,22 +108,14 @@ public class ModelSqlUtils {
      * @return sql
      */
     public static <T> SQL insertSql(String tableName, T data) {
-        Map<Integer, Object> params = new HashMap<>();
+        SQL sql = SQL.insert().table(tableName);
         List<Field> fields = new ArrayList<>();
         getFields(data.getClass(), fields);
-        StringBuilder sb = new StringBuilder();
-        sb.append("insert into ").append(tableName).append(" (");
-        fields.forEach(field -> sb.append(field.getName()).append(","));
-        int length = sb.length();
-        sb.delete(length - 1, length).append(") values (");
-        AtomicInteger atomicInteger = new AtomicInteger(0);
-        fields.forEach(field -> {
-            sb.append("?,");
-            params.put(atomicInteger.incrementAndGet(), getValue(field, data));
+        fields.stream().forEach(field -> {
+            Object valObj = getValue(field, data);
+            if (valObj != null) sql.addSet(field.getName(), valObj);
         });
-        length = sb.length();
-        sb.delete(length - 1, length).append(")");
-        return new SQL(sb.toString(), params);
+        return sql.parse();
     }
 
     /**
@@ -135,22 +127,18 @@ public class ModelSqlUtils {
      * @return sql
      */
     public static <T> SQL updateByIdSql(String tableName, T data) {
-        Map<Integer, Object> params = new HashMap<>();
+        SQL sql = SQL.update().table(tableName);
         List<Field> fields = new ArrayList<>();
         getFields(data.getClass(), fields);
-        StringBuilder sb = new StringBuilder();
-        sb.append("update ").append(tableName).append(" set ");
-        AtomicInteger atomicInteger = new AtomicInteger(0);
         fields.stream().filter(field -> !field.getName().equals("id")).forEach(field -> {
-            sb.append(field.getName()).append("=?").append(",");
-            params.put(atomicInteger.incrementAndGet(), getValue(field, data));
+            Object valObj = getValue(field, data);
+            if (valObj != null) sql.addSet(field.getName(), valObj);
         });
-        int length = sb.length();
-        sb.delete(length - 1, length);
-        Field idField = fields.stream().filter(field -> field.getName().equals("id")).findAny().orElseThrow(() -> new ModelSqlUtilsException("id值不能为空"));
-        sb.append(" where id=?");
-        params.put(atomicInteger.incrementAndGet(), getValue(idField, data));
-        return new SQL(sb.toString(), params);
+        Field idField = fields.stream().filter(field -> field.getName().equals("id")).findAny().orElseThrow(() -> new ModelSqlUtilsException("id不存在"));
+        Object valObj = getValue(idField, data);
+        if (valObj == null) throw new ModelSqlUtilsException("id值不能为空");
+        sql.addWhereEQ("id", valObj);
+        return sql.parse();
     }
 
     /**

@@ -18,7 +18,7 @@ public class SQL {
     AtomicInteger atomicInteger;
 
     @Getter
-    private String sql;
+    private String parse;
     @Getter
     private Map<Integer, Object> params = new HashMap<>();
 
@@ -196,7 +196,7 @@ public class SQL {
                 break;
             default:
         }
-        sql = sb.toString();
+        parse = sb.toString();
         return this;
     }
 
