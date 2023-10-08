@@ -9,6 +9,7 @@ import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -51,7 +52,9 @@ public class ModelSqlUtils {
             Object obj = field.get(data);
             if (obj != null) {
                 if (obj instanceof String) return "'" + obj + "'";
-                if (obj instanceof Date) return "'" + obj + "'";
+                if (obj instanceof java.sql.Timestamp)
+                    return "'" + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(obj) + "'";
+                if (obj instanceof Date) return "'" + new SimpleDateFormat("yyyy-MM-dd").format(obj) + "'";
                 else return String.valueOf(obj);
             } else {
                 return null;
