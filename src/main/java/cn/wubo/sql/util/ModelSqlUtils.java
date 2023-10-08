@@ -11,6 +11,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -22,6 +23,7 @@ public class ModelSqlUtils {
     }
 
     private static final String AND = " and ";
+    private static final String WHERE = " where ";
 
     /**
      * 反射获取类和父类的字段
@@ -46,16 +48,15 @@ public class ModelSqlUtils {
      * @param <T>
      * @return
      */
-    private static <T> String getVaue(Field field, T data) {
+    private static <T> Object getValue(Field field, T data) {
         try {
             field.setAccessible(true);
             Object obj = field.get(data);
             if (obj != null) {
-                if (obj instanceof String) return "'" + obj + "'";
                 if (obj instanceof java.sql.Timestamp)
-                    return "'" + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(obj) + "'";
-                if (obj instanceof Date) return "'" + new SimpleDateFormat("yyyy-MM-dd").format(obj) + "'";
-                else return String.valueOf(obj);
+                    return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(obj);
+                else if (obj instanceof Date) return new SimpleDateFormat("yyyy-MM-dd").format(obj);
+                else return obj;
             } else {
                 return null;
             }
@@ -106,7 +107,8 @@ public class ModelSqlUtils {
      * @param <T>       实体类
      * @return sql
      */
-    public static <T> String insertSql(String tableName, T data) {
+    public static <T> SQL insertSql(String tableName, T data) {
+        Map<Integer, Object> params = new HashMap<>();
         List<Field> fields = new ArrayList<>();
         getFields(data.getClass(), fields);
         StringBuilder sb = new StringBuilder();
@@ -114,10 +116,14 @@ public class ModelSqlUtils {
         fields.forEach(field -> sb.append(field.getName()).append(","));
         int length = sb.length();
         sb.delete(length - 1, length).append(") values (");
-        fields.forEach(field -> sb.append(getVaue(field, data)).append(","));
+        AtomicInteger atomicInteger = new AtomicInteger(0);
+        fields.forEach(field -> {
+            sb.append("?,");
+            params.put(atomicInteger.incrementAndGet(), getValue(field, data));
+        });
         length = sb.length();
         sb.delete(length - 1, length).append(")");
-        return sb.toString();
+        return new SQL(sb.toString(), params);
     }
 
     /**
@@ -128,20 +134,23 @@ public class ModelSqlUtils {
      * @param <T>       实体类
      * @return sql
      */
-    public static <T> String updateByIdSql(String tableName, T data) {
+    public static <T> SQL updateByIdSql(String tableName, T data) {
+        Map<Integer, Object> params = new HashMap<>();
         List<Field> fields = new ArrayList<>();
         getFields(data.getClass(), fields);
         StringBuilder sb = new StringBuilder();
         sb.append("update ").append(tableName).append(" set ");
-        fields.stream().filter(field -> !field.getName().equals("id")).forEach(field -> sb.append(field.getName()).append("=").append(getVaue(field, data)).append(","));
+        AtomicInteger atomicInteger = new AtomicInteger(0);
+        fields.stream().filter(field -> !field.getName().equals("id")).forEach(field -> {
+            sb.append(field.getName()).append("=?").append(",");
+            params.put(atomicInteger.incrementAndGet(), getValue(field, data));
+        });
         int length = sb.length();
         sb.delete(length - 1, length);
-        Optional<Field> optional = fields.stream().filter(field -> field.getName().equals("id")).findAny();
-        if (optional.isPresent()) {
-            String value = getVaue(optional.get(), data);
-            if (value != null) return sb.append(" where id=").append(value).toString();
-        }
-        throw new ModelSqlUtilsException("id值不能为空");
+        Field idField = fields.stream().filter(field -> field.getName().equals("id")).findAny().orElseThrow(() -> new ModelSqlUtilsException("id值不能为空"));
+        sb.append(" where id=?");
+        params.put(atomicInteger.incrementAndGet(), getValue(idField, data));
+        return new SQL(sb.toString(), params);
     }
 
     /**
@@ -152,17 +161,15 @@ public class ModelSqlUtils {
      * @param <T>       实体类
      * @return sql
      */
-    public static <T> String deleteByIdSql(String tableName, T data) {
+    public static <T> SQL deleteByIdSql(String tableName, T data) {
+        SQL sql = SQL.delete().table(tableName);
         List<Field> fields = new ArrayList<>();
         getFields(data.getClass(), fields);
-        StringBuilder sb = new StringBuilder();
-        sb.append("delete from ").append(tableName);
-        Optional<Field> optional = fields.stream().filter(field -> field.getName().equals("id")).findAny();
-        if (optional.isPresent()) {
-            String value = getVaue(optional.get(), data);
-            if (value != null) return sb.append(" where id=").append(value).toString();
-        }
-        throw new ModelSqlUtilsException("id值不能为空");
+        Field idField = fields.stream().filter(field -> field.getName().equals("id")).findAny().orElseThrow(() -> new ModelSqlUtilsException("id不存在"));
+        Object valObj = getValue(idField, data);
+        if (valObj == null) throw new ModelSqlUtilsException("id值不能为空");
+        sql.addWhereEQ("id", valObj);
+        return sql.parse();
     }
 
     /**
@@ -173,17 +180,15 @@ public class ModelSqlUtils {
      * @param <T>       实体类
      * @return sql
      */
-    public static <T> String selectSql(String tableName, T data) {
+    public static <T> SQL selectSql(String tableName, T data) {
+        SQL sql = SQL.select().table(tableName);
         List<Field> fields = new ArrayList<>();
         getFields(data.getClass(), fields);
-        StringBuilder sb = new StringBuilder();
-        sb.append("select * from ").append(tableName);
         fields.forEach(field -> {
-            String strValue = getVaue(field, data);
-            if (strValue != null) sb.append(AND).append(field.getName()).append("=").append(getVaue(field, data));
+            Object valObj = getValue(field, data);
+            if (valObj != null) sql.addWhereEQ(field.getName(), valObj);
         });
-        String str = sb.toString();
-        return str.contains(AND) ? str.replaceFirst(AND, " where ") : str;
+        return sql.parse();
     }
 
     /**
