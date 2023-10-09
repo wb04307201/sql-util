@@ -11,7 +11,6 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -21,9 +20,6 @@ public class ModelSqlUtils {
 
     private ModelSqlUtils() {
     }
-
-    private static final String AND = " and ";
-    private static final String WHERE = " where ";
 
     /**
      * 反射获取类和父类的字段
