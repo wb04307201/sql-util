@@ -1,6 +1,6 @@
 package cn.wubo.sql.util;
 
-import cn.wubo.sql.util.exception.ModelSqlUtilsException;
+import cn.wubo.sql.util.exception.SQLException;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
@@ -158,7 +158,7 @@ public class SQL {
     }
 
     public enum StatementType {
-        DELETE("delete "), INSERT("inser into "), SELECT("select "), UPDATE("update ");
+        DELETE("DELETE "), INSERT("INSERT INTO "), SELECT("SELECT "), UPDATE("UPDATE ");
 
         private String value;
 
@@ -169,7 +169,7 @@ public class SQL {
     }
 
     public enum StatementCondition {
-        EQ(" = "), UEQ(" <> "), LIKE(" like "), ULIKE(" not like "), LLIKE(" like "), RLIKE(" like "), GT(" > "), LT(" < "), GTEQ(" >= "), LTEQ(" <= "), BETWEEN(" between "), NOTBETWEEN(" not between "), IN(" in "), NOTIN(" not in "), NULL(" is null "), NOTNULL(" is not null ");
+        EQ(" = "), UEQ(" <> "), LIKE(" LIKE "), ULIKE(" NOT LIKE "), LLIKE(" LIKE "), RLIKE(" LIKE "), GT(" > "), LT(" < "), GTEQ(" >= "), LTEQ(" <= "), BETWEEN(" BETWEEN "), NOTBETWEEN(" NOT BETWEEN "), IN(" IN "), NOTIN(" NOT IN "), NULL(" IS NULL "), NOTNULL(" IS NOT NULL ");
 
         private String value;
 
@@ -204,12 +204,12 @@ public class SQL {
         sb.append(statementType.value);
         if (!columns.isEmpty()) columns.forEach(str -> sb.append(str).append(","));
         else sb.append("*,");
-        sb.delete(sb.length() - 1, sb.length()).append(" from ").append(table);
+        sb.delete(sb.length() - 1, sb.length()).append(" FROM ").append(table);
         whereSQL(sb);
     }
 
     private void whereSQL(StringBuilder sb) {
-        sb.append(" WHERE ").append(wheres.stream().map(where -> {
+        String whereSQL = wheres.stream().map(where -> {
             if (where.getStatementCondition() == StatementCondition.EQ || where.getStatementCondition() == StatementCondition.UEQ || where.getStatementCondition() == StatementCondition.GT || where.getStatementCondition() == StatementCondition.LT || where.getStatementCondition() == StatementCondition.GTEQ || where.getStatementCondition() == StatementCondition.LTEQ) {
                 params.put(atomicInteger.incrementAndGet(), where.getValue());
                 return where.getField() + where.getStatementCondition().value + "?";
@@ -232,7 +232,7 @@ public class SQL {
                     params.put(atomicInteger.incrementAndGet(), valueObjs.get(1));
                     return where.getField() + where.getStatementCondition().value + "? AND ?";
                 } else {
-                    throw new ModelSqlUtilsException("recieving incomplete @where condition between values invalid");
+                    throw new SQLException("recieving incomplete where condition between values invalid");
                 }
             } else if (where.getStatementCondition() == StatementCondition.IN || where.getStatementCondition() == StatementCondition.NOTIN) {
                 if (where.getValue() instanceof List) {
@@ -244,14 +244,15 @@ public class SQL {
                         return where.getField() + where.getStatementCondition().value + "(" + valueObjs.stream().map(obj -> "?").collect(Collectors.joining(",")) + ")";
                     }
                 } else {
-                    throw new ModelSqlUtilsException("recieving incomplete @where condition in values invalid");
+                    throw new SQLException("recieving incomplete where condition in values invalid");
                 }
             } else if (where.getStatementCondition() == StatementCondition.NULL || where.getStatementCondition() == StatementCondition.NOTNULL) {
                 return where.getField() + where.getStatementCondition().value;
             } else {
                 return null;
             }
-        }).filter(Objects::nonNull).collect(Collectors.joining(" AND ")));
+        }).filter(Objects::nonNull).collect(Collectors.joining(" AND "));
+        if (!whereSQL.isEmpty()) sb.append(" WHERE ").append(whereSQL);
     }
 
     private void insertSQL(StringBuilder sb) {
