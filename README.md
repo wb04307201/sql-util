@@ -40,23 +40,29 @@ public class DemoController {
         user2.setName("bbbb");
         user2.setCode("bbbb");
         //插入数据
-        ExecuteSqlUtils.executeUpdate(conn, ModelSqlUtils.insertSql("userInfo", user1));
-        ExecuteSqlUtils.executeUpdate(conn, ModelSqlUtils.insertSql("userInfo", user2));
+        SQL sql1 = ModelSqlUtils.insertSql("userInfo", user1);
+        ExecuteSqlUtils.executeUpdate(conn, sql1.getParse(), sql1.getParams());
+        SQL sql2 = ModelSqlUtils.insertSql("userInfo", user2);
+        ExecuteSqlUtils.executeUpdate(conn, sql2.getParse(), sql2.getParams());
         //删除数据
-        ExecuteSqlUtils.executeUpdate(conn, ModelSqlUtils.deleteByIdSql("userInfo", user1));
+        SQL sql3 = ModelSqlUtils.deleteByIdSql("userInfo", user1);
+        ExecuteSqlUtils.executeUpdate(conn, sql3.getParse(), sql3.getParams());
         //更新数据
         user2.setPassword("bbbb");
-        ExecuteSqlUtils.executeUpdate(conn, ModelSqlUtils.updateByIdSql("userInfo", user2));
+        SQL sql4 = ModelSqlUtils.updateByIdSql("userInfo", user2);
+        ExecuteSqlUtils.executeUpdate(conn, sql4.getParse(), sql4.getParams());
         //查询
-        List<User> list = ExecuteSqlUtils.executeQuery(conn, ModelSqlUtils.selectSql("userInfo", new User()), User.class);
+        SQL sql5 = ModelSqlUtils.selectSql("userInfo", new User());
+        List<User> list = ExecuteSqlUtils.executeQuery(conn, sql5.getParse(), sql5.getParams(), User.class);
         log.debug(list.toString());
         //使用id查询
         User query = new User();
         query.setId(id2);
-        list = ExecuteSqlUtils.executeQuery(conn, ModelSqlUtils.selectSql("userInfo", query), User.class);
+        SQL sql6 = ModelSqlUtils.selectSql("userInfo", query);
+        list = ExecuteSqlUtils.executeQuery(conn, sql6.getParse(), sql6.getParams(), User.class);
         log.debug(list.toString());
         //分页查询
-        list = ExecuteSqlUtils.executeQueryByPage(conn, ModelSqlUtils.selectSql("userInfo", new User()), DbType.h2, 1, 2, User.class);
+        list = ExecuteSqlUtils.executeQueryByPage(conn, sql6.getParse(), sql6.getParams(), DbType.h2, 1, 2, User.class);
         log.debug(list.toString());
         //释放连接
         connectionPool.returnConnection(conn);
