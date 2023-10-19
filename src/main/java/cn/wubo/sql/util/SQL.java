@@ -1,6 +1,9 @@
 package cn.wubo.sql.util;
 
 import cn.wubo.sql.util.exception.SQLException;
+import com.alibaba.druid.DbType;
+import com.alibaba.druid.sql.PagerUtils;
+import com.alibaba.druid.sql.SQLUtils;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
@@ -11,11 +14,14 @@ import java.util.stream.Collectors;
 
 public class SQL {
     private StatementType statementType;
+    @Getter
     private String table;
     private List<String> columns = new ArrayList<>();
     private List<Set> sets = new ArrayList<>();
     private List<Where> wheres = new ArrayList<>();
-    AtomicInteger atomicInteger;
+    private AtomicInteger atomicInteger;
+    @Getter
+    private DbType dbType;
 
     @Getter
     private String parse;
@@ -196,7 +202,8 @@ public class SQL {
                 break;
             default:
         }
-        parse = sb.toString();
+        if (dbType != null) parse = SQLUtils.toSQLString(SQLUtils.parseStatements(sb.toString(), dbType), dbType);
+        else parse = sb.toString();
         return this;
     }
 
@@ -273,5 +280,18 @@ public class SQL {
     private void deleteSQL(StringBuilder sb) {
         sb.append(statementType.value).append(table);
         whereSQL(sb);
+    }
+
+    public SQL page(int offset, int count) {
+        if (dbType == null) throw new SQLException("before invoke page method,should invoke setDbtype to set dbtype!");
+        this.parse = PagerUtils.limit(parse, dbType, offset, count);
+        return this;
+    }
+
+    public SQL setDbtype(DbType dbType) {
+        this.dbType = dbType;
+        if (parse != null && parse.length() > 0)
+            parse = SQLUtils.toSQLString(SQLUtils.parseStatements(parse, dbType), dbType);
+        return this;
     }
 }

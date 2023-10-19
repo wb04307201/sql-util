@@ -8,6 +8,8 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Optional;
 import java.util.Vector;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 
 /**
  * 一个数据库连接池
@@ -109,5 +111,37 @@ public class ConnectionPool {
     public void returnConnection(Connection conn) {
         log.debug("返回数据库连接 ......");
         connections.stream().filter(ele -> conn == ele.getConnection()).findAny().ifPresent(ele -> ele.setBusy(false));
+    }
+
+    public <U, R> R run(BiFunction<Connection, U, R> biFunction, U u) {
+        Connection conn = null;
+        R result = null;
+        try {
+            conn = getConnection();
+            result = biFunction.apply(conn, u);
+        } catch (SQLException e) {
+            throw new ConnectionPoolException(e.getMessage(), e);
+        } catch (InterruptedException e) {
+            log.error(e.getMessage(), e);
+            Thread.currentThread().interrupt();
+        } finally {
+            if (conn != null) returnConnection(conn);
+        }
+        return result;
+    }
+
+    public <U> void run(BiConsumer<Connection, U> biConsumer, U u) {
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            biConsumer.accept(conn, u);
+        } catch (SQLException e) {
+            throw new ConnectionPoolException(e.getMessage(), e);
+        } catch (InterruptedException e) {
+            log.error(e.getMessage(), e);
+            Thread.currentThread().interrupt();
+        } finally {
+            if (conn != null) returnConnection(conn);
+        }
     }
 }
