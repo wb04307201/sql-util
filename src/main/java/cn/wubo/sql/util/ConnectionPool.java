@@ -108,9 +108,21 @@ public class ConnectionPool {
      *
      * @param conn
      */
-    public void returnConnection(Connection conn) {
+    public synchronized void returnConnection(Connection conn) {
         log.debug("返回数据库连接 ......");
         connections.stream().filter(ele -> conn == ele.getConnection()).findAny().ifPresent(ele -> ele.setBusy(false));
+    }
+
+    public synchronized void destory() {
+        log.debug("销毁所有连接 ......");
+        connections.stream().forEach(ele -> {
+            try {
+                ele.getConnection().close();
+            } catch (SQLException e) {
+                log.error(e.getMessage(), e);
+            }
+        });
+        connections = new Vector<>();
     }
 
     public <U, R> R run(BiFunction<Connection, U, R> biFunction, U u) {

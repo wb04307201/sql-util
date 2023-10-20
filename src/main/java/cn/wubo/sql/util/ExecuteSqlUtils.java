@@ -26,24 +26,24 @@ public class ExecuteSqlUtils {
      * @param <T>        泛型
      * @return List<T>
      */
-    public static <T> List<T> executeQuery(Connection connection, String sql, Map<Integer, Object> params) {
+    public static <T> List<T> executeQuery(Connection connection, String sql, Map<Integer, Object> params, Class<T> clazz) {
         log.debug("executeQuery ...... sql:{} params:{}", sql, params);
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             for (Map.Entry<Integer, Object> entry : params.entrySet())
                 preparedStatement.setObject(entry.getKey(), entry.getValue());
-            return getResultMap(preparedStatement.executeQuery());
+            return getResult(preparedStatement.executeQuery(), clazz);
         } catch (SQLException | NoSuchMethodException | InstantiationException | IllegalAccessException |
                  InvocationTargetException e) {
             throw new ExecuteSqlUtilsException(e);
         }
     }
 
-    public static <T> List<T> executeQuery(Connection connection, SQL sql) {
-        return executeQuery(connection, sql.getParse(), sql.getParams());
+    public static <T> List<T> executeQuery(Connection connection, SQL<T> sql) {
+        return executeQuery(connection, sql.getParse(), sql.getParams(), sql.getClazz());
     }
 
-    public static <T> List<T> executeQuery(Connection connection, String sql) {
-        return executeQuery(connection, sql, new HashMap<>());
+    public static <T> List<T> executeQuery(Connection connection, String sql, Class<T> clazz) {
+        return executeQuery(connection, sql, new HashMap<>(), clazz);
     }
 
     /**
@@ -65,7 +65,7 @@ public class ExecuteSqlUtils {
         }
     }
 
-    public static int executeUpdate(Connection connection, SQL sql) {
+    public static <T> int executeUpdate(Connection connection, SQL<T> sql) {
         return executeUpdate(connection, sql.getParse(), sql.getParams());
     }
 
@@ -80,16 +80,15 @@ public class ExecuteSqlUtils {
      * @param <T> 泛型
      * @return List<T>
      */
-    private static <T> List<T> getResultMap(ResultSet rs) throws NoSuchMethodException, InstantiationException, IllegalAccessException, SQLException, InvocationTargetException {
-        log.debug("getResultMap ...... ");
-        Class<T> clazz = new GenericUtils<T>().getClassType();
-        if (Arrays.stream(clazz.getInterfaces()).anyMatch(item -> item.getName().equals("java.util.Map")))
+    private static <T> List<T> getResult(ResultSet rs, Class<T> clazz) throws NoSuchMethodException, InstantiationException, IllegalAccessException, SQLException, InvocationTargetException {
+        log.debug("getResultMap ...... Class:{}", clazz.getName());
+        if (clazz.getName().equals("java.util.Map") ||  Arrays.stream(clazz.getInterfaces()).anyMatch(item -> item.getName().equals("java.util.Map")))
             return result2Map(rs, clazz);
         else return result2Class(rs, clazz);
     }
 
     private static <T> List<T> result2Map(ResultSet rs, Class<T> clazz) throws SQLException, InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
-        log.debug("getResultMap ...... ");
+        log.debug("result2Map ...... ");
         List<T> result = new ArrayList<>();
         ResultSetMetaData rsmd = rs.getMetaData();
         int count = rsmd.getColumnCount();// 获取列的数量
@@ -98,9 +97,10 @@ public class ExecuteSqlUtils {
         for (int i = 1; i <= count; i++)
             headers[i - 1] = rsmd.getColumnLabel(i);
         //数据
+        Boolean isInterface = clazz.isInterface() && clazz.getName().equals("java.util.Map");
+        Method method = clazz.getDeclaredMethod("put", Object.class, Object.class);
         while (rs.next()) {
-            T row = clazz.newInstance();
-            Method method = clazz.getDeclaredMethod("put");
+            T row = isInterface ? (T) new HashMap<String,Object>() :clazz.newInstance();
             for (int i = 1; i <= count; i++)
                 method.invoke(row, headers[i - 1], rs.getObject(i));
             result.add(row);
@@ -109,6 +109,7 @@ public class ExecuteSqlUtils {
     }
 
     private static <T> List<T> result2Class(ResultSet rs, Class<T> clazz) throws SQLException, NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException {
+        log.debug("result2Class ...... ");
         List<T> result = new ArrayList<>();
         //获取实体中定义的方法
         HashMap<String, MethodEntity> hmMethods = new HashMap<>();
@@ -212,7 +213,7 @@ public class ExecuteSqlUtils {
         return isTableExists;
     }
 
-    public static Boolean isTableExists(Connection connection, SQL sql) {
+    public static <T> Boolean isTableExists(Connection connection, SQL<T> sql) {
         String tableName = sql.getTable();
         DbType dbType = sql.getDbType();
         if ((DbType.h2.equals(dbType) || DbType.oracle.equals(dbType) || DbType.postgresql.equals(dbType) || DbType.db2.equals(dbType) || DbType.dm.equals(dbType)))

@@ -12,7 +12,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-public class SQL {
+public class SQL<T> {
     private StatementType statementType;
     @Getter
     private String table;
@@ -28,6 +28,9 @@ public class SQL {
     @Getter
     private Map<Integer, Object> params = new HashMap<>();
 
+    @Getter
+    private Class<T> clazz;
+
     public SQL(StatementType statementType) {
         this.statementType = statementType;
     }
@@ -37,108 +40,127 @@ public class SQL {
         this.columns = columns;
     }
 
-    public static SQL select(String... columns) {
-        return new SQL(StatementType.SELECT, Arrays.asList(columns));
+    public SQL(StatementType statementType, List<String> columns, Class<T> clazz) {
+        this.statementType = statementType;
+        this.columns = columns;
+        this.clazz = clazz;
     }
 
-    public static SQL insert() {
-        return new SQL(StatementType.INSERT);
+    public SQL(String table, DbType dbType) {
+        this.table = table;
+        this.dbType = dbType;
     }
 
-    public static SQL update() {
-        return new SQL(StatementType.UPDATE);
+    public static <T> SQL<T> select(String... columns) {
+        return new SQL<>(StatementType.SELECT, Arrays.asList(columns));
     }
 
-    public static SQL delete() {
-        return new SQL(StatementType.DELETE);
+    public static <T> SQL<T> select(Class<T> clazz, String... columns) {
+        return new SQL<>(StatementType.SELECT, Arrays.asList(columns), clazz);
     }
 
-    public SQL table(String table) {
+    public static <T> SQL<T> insert() {
+        return new SQL<>(StatementType.INSERT);
+    }
+
+    public static <T> SQL<T> update() {
+        return new SQL<>(StatementType.UPDATE);
+    }
+
+    public static <T> SQL<T> delete() {
+        return new SQL<>(StatementType.DELETE);
+    }
+
+    public static <T> SQL<T> tableExists(String table, DbType dbType) {
+        return new SQL<>(table, dbType);
+    }
+
+    public SQL<T> table(String table) {
         this.table = table;
         return this;
     }
 
-    public SQL addSet(String field, Object value) {
+    public SQL<T> addSet(String field, Object value) {
         sets.add(new Set(field, value));
         return this;
     }
 
-    public SQL addWhereEQ(String field, Object value) {
+    public SQL<T> addWhereEQ(String field, Object value) {
         wheres.add(new Where(field, StatementCondition.EQ, value));
         return this;
     }
 
-    public SQL addWhereUEQ(String field, Object value) {
+    public SQL<T> addWhereUEQ(String field, Object value) {
         wheres.add(new Where(field, StatementCondition.UEQ, value));
         return this;
     }
 
-    public SQL addWhereLIKE(String field, Object value) {
+    public SQL<T> addWhereLIKE(String field, Object value) {
         wheres.add(new Where(field, StatementCondition.LIKE, value));
         return this;
     }
 
-    public SQL addWhereULIKE(String field, Object value) {
+    public SQL<T> addWhereULIKE(String field, Object value) {
         wheres.add(new Where(field, StatementCondition.ULIKE, value));
         return this;
     }
 
-    public SQL addWhereLLIKE(String field, Object value) {
+    public SQL<T> addWhereLLIKE(String field, Object value) {
         wheres.add(new Where(field, StatementCondition.LLIKE, value));
         return this;
     }
 
-    public SQL addWhereRLIKE(String field, Object value) {
+    public SQL<T> addWhereRLIKE(String field, Object value) {
         wheres.add(new Where(field, StatementCondition.RLIKE, value));
         return this;
     }
 
-    public SQL addWhereGT(String field, Object value) {
+    public SQL<T> addWhereGT(String field, Object value) {
         wheres.add(new Where(field, StatementCondition.GT, value));
         return this;
     }
 
-    public SQL addWhereLT(String field, Object value) {
+    public SQL<T> addWhereLT(String field, Object value) {
         wheres.add(new Where(field, StatementCondition.LT, value));
         return this;
     }
 
-    public SQL addWhereGTEQ(String field, Object value) {
+    public SQL<T> addWhereGTEQ(String field, Object value) {
         wheres.add(new Where(field, StatementCondition.GTEQ, value));
         return this;
     }
 
-    public SQL addWhereLTEQ(String field, Object value) {
+    public SQL<T> addWhereLTEQ(String field, Object value) {
         wheres.add(new Where(field, StatementCondition.LTEQ, value));
         return this;
     }
 
-    public SQL addWhereBETWEEN(String field, Object value) {
+    public SQL<T> addWhereBETWEEN(String field, Object value) {
         wheres.add(new Where(field, StatementCondition.BETWEEN, value));
         return this;
     }
 
-    public SQL addWhereNOTBETWEEN(String field, Object value) {
+    public SQL<T> addWhereNOTBETWEEN(String field, Object value) {
         wheres.add(new Where(field, StatementCondition.NOTBETWEEN, value));
         return this;
     }
 
-    public SQL addWhereIN(String field, Object value) {
+    public SQL<T> addWhereIN(String field, Object value) {
         wheres.add(new Where(field, StatementCondition.IN, value));
         return this;
     }
 
-    public SQL addWhereNOTIN(String field, Object value) {
+    public SQL<T> addWhereNOTIN(String field, Object value) {
         wheres.add(new Where(field, StatementCondition.NOTIN, value));
         return this;
     }
 
-    public SQL addWhereNULL(String field) {
+    public SQL<T> addWhereNULL(String field) {
         wheres.add(new Where(field, StatementCondition.NULL));
         return this;
     }
 
-    public SQL addWhereNOTNULL(String field) {
+    public SQL<T> addWhereNOTNULL(String field) {
         wheres.add(new Where(field, StatementCondition.NOTNULL));
         return this;
     }
@@ -184,7 +206,7 @@ public class SQL {
         }
     }
 
-    public SQL parse() {
+    public SQL<T> parse() {
         StringBuilder sb = new StringBuilder();
         atomicInteger = new AtomicInteger(0);
         switch (statementType) {
@@ -282,13 +304,13 @@ public class SQL {
         whereSQL(sb);
     }
 
-    public SQL page(int offset, int count) {
+    public SQL<T> page(int offset, int count) {
         if (dbType == null) throw new SQLException("before invoke page method,should invoke setDbtype to set dbtype!");
         this.parse = PagerUtils.limit(parse, dbType, offset, count);
         return this;
     }
 
-    public SQL setDbtype(DbType dbType) {
+    public SQL<T> setDbtype(DbType dbType) {
         this.dbType = dbType;
         if (parse != null && parse.length() > 0)
             parse = SQLUtils.toSQLString(SQLUtils.parseStatements(parse, dbType), dbType);

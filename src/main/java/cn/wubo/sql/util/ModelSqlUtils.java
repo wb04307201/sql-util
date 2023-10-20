@@ -103,8 +103,8 @@ public class ModelSqlUtils {
      * @param <T>       实体类
      * @return sql
      */
-    public static <T> SQL insertSql(String tableName, T data) {
-        SQL sql = SQL.insert().table(tableName);
+    public static <T> SQL<T> insertSql(String tableName, T data) {
+        SQL<T> sql = SQL.<T>insert().table(tableName);
         List<Field> fields = new ArrayList<>();
         getFields(data.getClass(), fields);
         fields.stream().forEach(field -> {
@@ -122,8 +122,8 @@ public class ModelSqlUtils {
      * @param <T>       实体类
      * @return sql
      */
-    public static <T> SQL updateByIdSql(String tableName, T data) {
-        SQL sql = SQL.update().table(tableName);
+    public static <T> SQL<T> updateByIdSql(String tableName, T data) {
+        SQL<T> sql = SQL.<T>update().table(tableName);
         List<Field> fields = new ArrayList<>();
         getFields(data.getClass(), fields);
         fields.stream().filter(field -> !field.getName().equals("id")).forEach(field -> {
@@ -145,8 +145,8 @@ public class ModelSqlUtils {
      * @param <T>       实体类
      * @return sql
      */
-    public static <T> SQL deleteByIdSql(String tableName, T data) {
-        SQL sql = SQL.delete().table(tableName);
+    public static <T> SQL<T> deleteByIdSql(String tableName, T data) {
+        SQL<T> sql = SQL.<T>delete().table(tableName);
         List<Field> fields = new ArrayList<>();
         getFields(data.getClass(), fields);
         Field idField = fields.stream().filter(field -> field.getName().equals("id")).findAny().orElseThrow(() -> new ModelSqlUtilsException("id不存在"));
@@ -164,8 +164,8 @@ public class ModelSqlUtils {
      * @param <T>       实体类
      * @return sql
      */
-    public static <T> SQL selectSql(String tableName, T data) {
-        SQL sql = SQL.select().table(tableName);
+    public static <T> SQL<T> selectSql(String tableName, T data) {
+        SQL<T> sql = (SQL<T>) SQL.select(data.getClass()).table(tableName);
         List<Field> fields = new ArrayList<>();
         getFields(data.getClass(), fields);
         fields.forEach(field -> {
