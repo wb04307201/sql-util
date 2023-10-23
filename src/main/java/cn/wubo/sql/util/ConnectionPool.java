@@ -1,6 +1,7 @@
 package cn.wubo.sql.util;
 
 import cn.wubo.sql.util.exception.ConnectionPoolException;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
@@ -27,6 +28,8 @@ import java.util.function.BiFunction;
 public class ConnectionPool {
 
     private final ConnectionParam param;
+
+    private boolean inited = false;
     private Vector<PooledConnection> connections = new Vector<>();
 
     public ConnectionPool(ConnectionParam param) {
@@ -42,6 +45,10 @@ public class ConnectionPool {
      */
     public synchronized Connection getConnection() throws SQLException, InterruptedException {
         log.debug("获取数据库连接 ......");
+        if (!inited) {
+            createConnections(param.getMinConnection());
+            inited = true;
+        }
         Connection conn = getFreeConnection(); // 获得一个可用的数据库连接
         // 如果目前没有可以使用的连接，即所有的连接都在使用中
         int retryCount = 1;
@@ -65,8 +72,7 @@ public class ConnectionPool {
         if (conn == null) {
             // 如果目前连接池中没有可用的连接
             // 创建一些连接,但如果已经达到最大，则不在创建
-            if (connections.isEmpty() && param.getMinConnection() > 0) createConnections(param.getMinConnection());
-            else createConnections(param.getIncrementalConnections());
+            createConnections(param.getIncrementalConnections());
             // 重新从池中查找是否有可用连接
             conn = findFreeConnection();
             // 如果创建连接后仍获得不到可用的连接，则返回 null
@@ -154,6 +160,19 @@ public class ConnectionPool {
             Thread.currentThread().interrupt();
         } finally {
             if (conn != null) returnConnection(conn);
+        }
+    }
+
+    @Data
+    public class PooledConnection {
+        //数据库连接
+        private Connection connection;
+        //对象连接是否被使用
+        private boolean busy = false;
+
+        // 构造函数，根据一个 Connection 构告一个 PooledConnection 对象
+        public PooledConnection(Connection connection) {
+            this.connection = connection;
         }
     }
 }
