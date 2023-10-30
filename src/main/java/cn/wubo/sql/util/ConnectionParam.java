@@ -17,9 +17,9 @@ public class ConnectionParam implements Serializable {
     private int minConnection; // 数据库连接池最小连接数,即连接池创建后的初始数量
     private int maxConnection; // 数据库连接池最大连接数
     private int retryCount; // 获取数据库连接失败重试次数
-    private long retryWaitTime = 250; // 获取数据库连接失败重试等待时间
+    private long retryWaitTime = 250; // 获取数据库连接失败重试等待时间（毫秒）
     private int incrementalConnections = 5; // 连接池自动增加连接的数量
-    private long validationTime = 600; // 连接是否有效检测时间
+    private long validationTime = 600000; // 连接是否有效检测时间（毫秒）
     private String validationQuery = "select 1"; //连接是否有效查询sql
 
     public ConnectionParam(String url, String user, String password) {

@@ -40,7 +40,7 @@ public class ConnectionPool {
     public ConnectionPool(ConnectionParam param) {
         this.param = param;
         this.threadPool = Executors.newSingleThreadScheduledExecutor();
-        threadPool.schedule(this::destoryInvalid, this.param.getValidationTime(), TimeUnit.SECONDS);
+        threadPool.schedule(this::destoryInvalid, this.param.getValidationTime(), TimeUnit.MILLISECONDS);
     }
 
     /**
