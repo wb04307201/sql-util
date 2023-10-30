@@ -35,11 +35,9 @@ public class ConnectionPool {
     private Boolean inited = Boolean.FALSE;
     private Vector<PooledConnection> connections = new Vector<>();
 
-    private final ScheduledExecutorService validationExecutor;
-
     public ConnectionPool(ConnectionParam param) {
         this.param = param;
-        this.validationExecutor = Executors.newSingleThreadScheduledExecutor();
+        ScheduledExecutorService validationExecutor = Executors.newSingleThreadScheduledExecutor();
         validationExecutor.schedule(this::destoryInvalid, this.param.getValidationTime(), TimeUnit.MILLISECONDS);
     }
 
