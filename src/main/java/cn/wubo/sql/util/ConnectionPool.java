@@ -35,12 +35,12 @@ public class ConnectionPool {
     private boolean inited = false;
     private Vector<PooledConnection> connections = new Vector<>();
 
-    private ScheduledExecutorService threadPool;
+    private final ScheduledExecutorService validationExecutor;
 
     public ConnectionPool(ConnectionParam param) {
         this.param = param;
-        this.threadPool = Executors.newSingleThreadScheduledExecutor();
-        threadPool.schedule(this::destoryInvalid, this.param.getValidationTime(), TimeUnit.MILLISECONDS);
+        this.validationExecutor = Executors.newSingleThreadScheduledExecutor();
+        validationExecutor.schedule(this::destoryInvalid, this.param.getValidationTime(), TimeUnit.MILLISECONDS);
     }
 
     /**
