@@ -32,7 +32,7 @@ public class ConnectionPool {
 
     private final ConnectionParam param;
 
-    private boolean inited = false;
+    private Boolean inited = Boolean.FALSE;
     private Vector<PooledConnection> connections = new Vector<>();
 
     private final ScheduledExecutorService validationExecutor;
