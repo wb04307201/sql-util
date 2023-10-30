@@ -9,6 +9,9 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Optional;
 import java.util.Vector;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
@@ -32,8 +35,12 @@ public class ConnectionPool {
     private boolean inited = false;
     private Vector<PooledConnection> connections = new Vector<>();
 
+    private ScheduledExecutorService threadPool;
+
     public ConnectionPool(ConnectionParam param) {
         this.param = param;
+        this.threadPool = Executors.newSingleThreadScheduledExecutor();
+        threadPool.schedule(this::destoryInvalid, this.param.getValidationTime(), TimeUnit.SECONDS);
     }
 
     /**
@@ -117,6 +124,26 @@ public class ConnectionPool {
     public synchronized void returnConnection(Connection conn) {
         log.debug("返回数据库连接 ......");
         connections.stream().filter(ele -> conn == ele.getConnection()).findAny().ifPresent(ele -> ele.setBusy(false));
+    }
+
+    private synchronized void destoryInvalid() {
+        log.debug("销毁失效连接 ......");
+        connections.stream().filter(ele -> !ele.busy).filter(ele -> {
+            try {
+                ele.getConnection().prepareStatement(param.getValidationQuery()).execute();
+                return Boolean.FALSE;
+            } catch (SQLException e) {
+                log.debug(e.getMessage(), e);
+                return Boolean.TRUE;
+            }
+        }).forEach(ele -> {
+            connections.remove(ele);
+            try {
+                ele.getConnection().close();
+            } catch (SQLException e) {
+                log.error(e.getMessage(), e);
+            }
+        });
     }
 
     public synchronized void destory() {
