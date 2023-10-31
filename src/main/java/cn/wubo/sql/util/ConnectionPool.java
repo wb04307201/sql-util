@@ -162,11 +162,8 @@ public class ConnectionPool {
         try {
             conn = getConnection();
             result = biFunction.apply(conn, u);
-        } catch (SQLException e) {
+        } catch (SQLException | InterruptedException e) {
             throw new ConnectionPoolException(e.getMessage(), e);
-        } catch (InterruptedException e) {
-            log.error(e.getMessage(), e);
-            Thread.currentThread().interrupt();
         } finally {
             if (conn != null) returnConnection(conn);
         }
@@ -178,11 +175,8 @@ public class ConnectionPool {
         try {
             conn = getConnection();
             biConsumer.accept(conn, u);
-        } catch (SQLException e) {
+        } catch (SQLException | InterruptedException e) {
             throw new ConnectionPoolException(e.getMessage(), e);
-        } catch (InterruptedException e) {
-            log.error(e.getMessage(), e);
-            Thread.currentThread().interrupt();
         } finally {
             if (conn != null) returnConnection(conn);
         }
