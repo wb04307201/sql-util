@@ -5,11 +5,14 @@ import cn.wubo.sql.util.entity.MethodEntity;
 import cn.wubo.sql.util.exception.ExecuteSqlUtilsException;
 import com.alibaba.druid.DbType;
 import lombok.extern.slf4j.Slf4j;
+import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 @Slf4j
 public class ExecuteSqlUtils {
@@ -44,6 +47,10 @@ public class ExecuteSqlUtils {
 
     public static <T> List<T> executeQuery(Connection connection, String sql, Class<T> clazz) {
         return executeQuery(connection, sql, new HashMap<>(), clazz);
+    }
+
+    public static <T> List<T> executeQuery(Connection connection, String sql, TypeReference<T> type) {
+        return executeQuery(connection, sql, new HashMap<>(), (Class<T>) ((ParameterizedTypeImpl) type.type).getRawType());
     }
 
     /**
@@ -82,8 +89,7 @@ public class ExecuteSqlUtils {
      */
     private static <T> List<T> getResult(ResultSet rs, Class<T> clazz) throws NoSuchMethodException, InstantiationException, IllegalAccessException, SQLException, InvocationTargetException {
         log.debug("getResultMap ...... Class:{}", clazz.getName());
-        if (clazz.getName().equals("java.util.Map") ||  Arrays.stream(clazz.getInterfaces()).anyMatch(item -> item.getName().equals("java.util.Map")))
-            return result2Map(rs, clazz);
+        if (isMap(clazz)) return result2Map(rs, clazz);
         else return result2Class(rs, clazz);
     }
 
@@ -97,15 +103,29 @@ public class ExecuteSqlUtils {
         for (int i = 1; i <= count; i++)
             headers[i - 1] = rsmd.getColumnLabel(i);
         //数据
-        Boolean isInterface = clazz.isInterface() && clazz.getName().equals("java.util.Map");
-        Method method = clazz.getDeclaredMethod("put", Object.class, Object.class);
+        Method method = clazz.getMethod("put", Object.class, Object.class);
         while (rs.next()) {
-            T row = isInterface ? (T) new HashMap<String,Object>() :clazz.newInstance();
+            T row = createMap(clazz);
             for (int i = 1; i <= count; i++)
                 method.invoke(row, headers[i - 1], rs.getObject(i));
             result.add(row);
         }
         return result;
+    }
+
+    private static <T> Boolean isMap(Class<T> clazz) {
+        return clazz.getName().equals("java.util.Map") || Arrays.stream(clazz.getInterfaces()).anyMatch(item -> item.getName().equals("java.util.Map")) || Arrays.stream(clazz.getSuperclass().getInterfaces()).anyMatch(item -> item.getName().equals("java.util.Map"));
+    }
+
+    private static <T> T createMap(Class<T> clazz) throws InstantiationException, IllegalAccessException {
+        if (clazz == Properties.class) return (T) new Properties();
+        if (clazz == Hashtable.class) return (T) new Hashtable<>();
+        if (clazz == IdentityHashMap.class) return (T) new IdentityHashMap<>();
+        if (clazz == SortedMap.class || clazz == TreeMap.class) return (T) new TreeMap<>();
+        if (clazz == ConcurrentMap.class || clazz == ConcurrentHashMap.class) return (T) new ConcurrentHashMap<>();
+        if (clazz == Map.class || clazz == HashMap.class) return (T) new HashMap<>();
+        if (clazz == LinkedHashMap.class) return (T) new LinkedHashMap<>();
+        return clazz.newInstance();
     }
 
     private static <T> List<T> result2Class(ResultSet rs, Class<T> clazz) throws SQLException, NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException {
