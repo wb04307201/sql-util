@@ -1,6 +1,6 @@
 package cn.wubo.sql.util;
 
-import cn.wubo.sql.util.exception.SQLException;
+import cn.wubo.sql.util.exception.SQLRuntimeException;
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.PagerUtils;
 import com.alibaba.druid.sql.SQLUtils;
@@ -261,7 +261,7 @@ public class SQL<T> {
                     params.put(atomicInteger.incrementAndGet(), valueObjs.get(1));
                     return where.getField() + where.getStatementCondition().value + "? AND ?";
                 } else {
-                    throw new SQLException("recieving incomplete where condition between values invalid");
+                    throw new SQLRuntimeException("recieving incomplete where condition between values invalid");
                 }
             } else if (where.getStatementCondition() == StatementCondition.IN || where.getStatementCondition() == StatementCondition.NOTIN) {
                 if (where.getValue() instanceof List) {
@@ -273,7 +273,7 @@ public class SQL<T> {
                         return where.getField() + where.getStatementCondition().value + "(" + valueObjs.stream().map(obj -> "?").collect(Collectors.joining(",")) + ")";
                     }
                 } else {
-                    throw new SQLException("recieving incomplete where condition in values invalid");
+                    throw new SQLRuntimeException("recieving incomplete where condition in values invalid");
                 }
             } else if (where.getStatementCondition() == StatementCondition.NULL || where.getStatementCondition() == StatementCondition.NOTNULL) {
                 return where.getField() + where.getStatementCondition().value;
@@ -305,7 +305,7 @@ public class SQL<T> {
     }
 
     public SQL<T> page(int offset, int count) {
-        if (dbType == null) throw new SQLException("before invoke page method,should invoke setDbtype to set dbtype!");
+        if (dbType == null) throw new SQLRuntimeException("before invoke page method,should invoke setDbtype to set dbtype!");
         this.parse = PagerUtils.limit(parse, dbType, offset, count);
         return this;
     }

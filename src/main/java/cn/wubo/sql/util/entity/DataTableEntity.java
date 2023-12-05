@@ -23,8 +23,9 @@ public class DataTableEntity {
 
     /**
      * 获取第index个字段名称，如果index字段不存在，则抛出ArrayIndexOutOfBoundsException异常
-     * @param index
-     * @return
+     * @param index 第index个字段的索引值
+     * @return 第index个字段的名称
+     * @throws ArrayIndexOutOfBoundsException 如果index大于字段计数，则抛出异常
      */
     public String getColumnName(int index) {
         if (index <= this.columnCount) {
@@ -34,10 +35,11 @@ public class DataTableEntity {
         }
     }
 
+
     /**
      * 设置第index个字段名称，如果index字段不存在，则抛出ArrayIndexOutOfBoundsException异常
-     * @param columnName
-     * @param index
+     * @param columnName 字段名称
+     * @param index index值
      */
     public void setColumnName(String columnName, int index) {
         if (index <= this.columnCount) {
@@ -47,10 +49,11 @@ public class DataTableEntity {
         }
     }
 
+
     /**
      * 获取字段类型，不存在则抛出ArrayIndexOutOfBoundsException异常
-     * @param index
-     * @return
+     * @param index 索引，表示要获取的字段的索引位置
+     * @return 返回指定字段的类型
      */
     public int getColumnType(int index) {
         if (index <= this.columnCount) {
@@ -60,10 +63,11 @@ public class DataTableEntity {
         }
     }
 
+
     /**
      * 获取字段类型，不存在则抛出ArrayIndexOutOfBoundsException异常
-     * @param columnType
-     * @param index
+     * @param columnType 字段类型
+     * @param index 字段索引
      */
     public void setColumnType(int columnType, int index) {
         if (index <= this.columnCount) {
@@ -72,4 +76,5 @@ public class DataTableEntity {
             throw new ArrayIndexOutOfBoundsException();
         }
     }
+
 }

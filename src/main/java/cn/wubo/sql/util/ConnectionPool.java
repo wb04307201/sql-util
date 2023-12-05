@@ -50,7 +50,7 @@ public class ConnectionPool {
      */
     public synchronized Connection getConnection() throws SQLException, InterruptedException {
         log.debug("获取数据库连接 ......");
-        if (!inited) {
+        if (Boolean.FALSE.equals(inited)) {
             createConnections(param.getMinConnection());
             inited = true;
         }
@@ -156,6 +156,13 @@ public class ConnectionPool {
         connections = new Vector<>();
     }
 
+    /**
+     * 运行给定的BiFunction，并返回结果。
+     *
+     * @param biFunction 一个接受Connection和U作为参数，并返回R结果的BiFunction
+     * @param u 传入BiFunction的第一个参数
+     * @return U传入BiFunction的结果
+     */
     public <U, R> R run(BiFunction<Connection, U, R> biFunction, U u) {
         Connection conn = null;
         R result = null;
@@ -170,6 +177,13 @@ public class ConnectionPool {
         return result;
     }
 
+
+    /**
+     * 运行方法
+     *
+     * @param biConsumer 二元消费者
+     * @param u 参数u
+     */
     public <U> void run(BiConsumer<Connection, U> biConsumer, U u) {
         Connection conn = null;
         try {
@@ -181,6 +195,7 @@ public class ConnectionPool {
             if (conn != null) returnConnection(conn);
         }
     }
+
 
     @Data
     public class PooledConnection {
