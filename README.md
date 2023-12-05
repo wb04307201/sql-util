@@ -28,7 +28,7 @@ public class TestController implements DisposableBean {
      * 增删改查
      */
     @GetMapping(value = "/test1")
-    public List<User> test1() throws SQLException {
+    public List<User> test1() {
         //检测表是否存在，不存在创建表
         if (Boolean.FALSE.equals(connectionPool.run((connection, sql) -> {
             return ExecuteSqlUtils.isTableExists(connection, sql);
@@ -97,7 +97,7 @@ public class TestController implements DisposableBean {
      * @throws SQLException
      */
     @GetMapping(value = "/test2")
-    public void test2() throws SQLException, java.sql.SQLException, InterruptedException {
+    public void test2() throws SQLException, InterruptedException {
         // 1. 获取连接
         Connection connection = connectionPool.getConnection();
         // 2. 禁用自动提交
@@ -113,6 +113,7 @@ public class TestController implements DisposableBean {
 
     /**
      * 销毁所有连接
+     *
      * @throws Exception
      */
     @Override
