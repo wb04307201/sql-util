@@ -30,7 +30,7 @@ public class ExecuteSqlUtils {
      * @return List<T>
      */
     public static <T> List<T> executeQuery(Connection connection, String sql, Map<Integer, Object> params, Class<T> clazz) {
-        log.debug("executeQuery ...... sql:{} params:{}", sql, params);
+        log.debug("executeQuery ...... sql:{} params:{} class:{}", sql, params, clazz.getName());
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             for (Map.Entry<Integer, Object> entry : params.entrySet())
                 preparedStatement.setObject(entry.getKey(), entry.getValue());
@@ -141,7 +141,7 @@ public class ExecuteSqlUtils {
      * @throws InvocationTargetException 当调用方法发生异常时抛出该异常
      */
     private static <T> List<T> getResult(ResultSet rs, Class<T> clazz) throws NoSuchMethodException, InstantiationException, IllegalAccessException, SQLException, InvocationTargetException {
-        log.debug("getResultMap ...... Class:{}", clazz.getName());
+        log.debug("getResult ...... class:{}", clazz.getName());
         if (Boolean.TRUE.equals(isMap(clazz))) return result2Map(rs, clazz);
         else return result2Class(rs, clazz);
     }
@@ -216,8 +216,6 @@ public class ExecuteSqlUtils {
      * @throws IllegalAccessException 如果无法访问实体类的的方法或属性
      */
     private static <T> List<T> result2Class(ResultSet rs, Class<T> clazz) throws SQLException, InstantiationException, IllegalAccessException {
-        log.debug("result2Class ...... ");
-
         // 创建实体类列表
         List<T> result = new ArrayList<>();
 
@@ -268,6 +266,7 @@ public class ExecuteSqlUtils {
         // 返回实体类列表
         return result;
     }
+
 
     /**
      * 将ResultSet中的数据转换为指定类的实例对象
@@ -327,7 +326,6 @@ public class ExecuteSqlUtils {
     }
 
 
-
     /**
      * 判断表是否存在
      *
@@ -371,5 +369,6 @@ public class ExecuteSqlUtils {
         // 调用isTableExists方法判断表是否存在
         return isTableExists(connection, null, null, tableName, new String[]{"TABLE"});
     }
+
 
 }

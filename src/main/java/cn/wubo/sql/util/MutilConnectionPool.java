@@ -1,6 +1,6 @@
 package cn.wubo.sql.util;
 
-import cn.wubo.sql.util.exception.SQLRuntimeException;
+import cn.wubo.sql.util.exception.ConnectionPoolException;
 import com.alibaba.druid.pool.DruidDataSource;
 import lombok.extern.slf4j.Slf4j;
 
@@ -17,12 +17,12 @@ import java.util.function.BiFunction;
 @Slf4j
 public class MutilConnectionPool {
 
-    private static final String MSATER_DATSOURCE = "master";
+    private static final String MASTER_DATASOURCE = "master";
 
     private MutilConnectionPool() {
     }
 
-    private static ConcurrentMap<String, DataSource> poolMap = new ConcurrentHashMap<>();
+    private static ConcurrentMap<String, DruidDataSource> poolMap = new ConcurrentHashMap<>();
 
     /**
      * 获取连接
@@ -44,7 +44,7 @@ public class MutilConnectionPool {
         try {
             return poolMap.get(key).getConnection();
         } catch (SQLException e) {
-            throw new SQLRuntimeException(e);
+            throw new ConnectionPoolException(e);
         }
     }
 
@@ -58,7 +58,7 @@ public class MutilConnectionPool {
      * @return 返回数据库连接
      */
     public static synchronized Connection getConnection(String url, String username, String password) {
-        return getConnection(MSATER_DATSOURCE, url, username, password);
+        return getConnection(MASTER_DATASOURCE, url, username, password);
     }
 
     /**
@@ -68,15 +68,15 @@ public class MutilConnectionPool {
      * @return 连接
      */
     public static synchronized Connection getConnection(String key, DataSource datasource) {
-        if (!poolMap.containsKey(key)) {
-            poolMap.putIfAbsent(key, datasource);
-        }
+        if (!(datasource instanceof DruidDataSource)) throw new ConnectionPoolException("请使用DruidDataSource!");
+        if (!poolMap.containsKey(key)) poolMap.putIfAbsent(key, (DruidDataSource) datasource);
         try {
             return poolMap.get(key).getConnection();
         } catch (SQLException e) {
-            throw new SQLRuntimeException(e);
+            throw new ConnectionPoolException(e);
         }
     }
+
 
     /**
      * 获取连接
@@ -85,8 +85,9 @@ public class MutilConnectionPool {
      * @return 连接
      */
     public static synchronized Connection getConnection(DataSource datasource) {
-        return getConnection(MSATER_DATSOURCE, datasource);
+        return getConnection(MASTER_DATASOURCE, datasource);
     }
+
 
     /**
      * run方法
@@ -98,7 +99,7 @@ public class MutilConnectionPool {
         try (Connection connection = getConnection(key, url, username, password)) {
             return biFunction.apply(connection, u);
         } catch (SQLException e) {
-            throw new SQLRuntimeException(e);
+            throw new ConnectionPoolException(e);
         }
     }
 
