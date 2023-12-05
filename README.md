@@ -8,11 +8,11 @@
 
 | 工具类                 | 描述                                                                                  |
 |---------------------|-------------------------------------------------------------------------------------|
-| ModelSqlUtils       | 从实体类生成建表、删表、增删改查等sql工具                                                              |
-| ExecuteSqlUtils     | sql语句执行工具                                                                           |
+| ModelSqlUtils       | 从实体类生成建表、删表、增删改查等sql工具 类                                                            |
+| ExecuteSqlUtils     | sql语句执行工具类                                                                          |
 | ConnectionPool      | 一个简单的链接池,通过新建ConnectionParam对象能快速的的初始化一个h2数据库连接池,也可在新建ConnectionParam对象时传入其他数据库配置信息 |
 | MutilConnectionPool | 一个多数据源连接池                                                                           |
-| SQL                 | SQL构造工具                                                                             |
+| SQL                 | SQL构造工具类                                                                            |
 
 ```java
 @Slf4j
