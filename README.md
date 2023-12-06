@@ -128,7 +128,10 @@ public class TestController implements DisposableBean {
         String username = "";
         String passowrd = "";
 
-        // 获取链接，也可以注入DataSource后通过DataSource初始化，重构方法没有key如参数时默认数据源key为master
+        // 获取链接，也可以注入DataSource后通过DataSource初始化，仅支持DruidDataSource，重构方法没有key如参数时默认数据源key为master
+        // 如果使用baomidou的多数据源，需要DynamicRoutingDataSource中获取真实的DataSource
+        // 例如：ItemDataSource itemDataSource = (ItemDataSource) dataSource.getDataSource("master")
+        //      itemDataSource.getRealDataSource()
         try (Connection connection = MutilConnectionPool.getConnection(key, url, username, passowrd)) {
             // 获取数据源后通过ExecuteSqlUtils工具类执行sql语句进行查询
             List<Map<String, Object>> list1 = ExecuteSqlUtils.executeQuery(connection, "select a.* from aaaa a", new HashMap<>(), new cn.wubo.sql.util.TypeReference<Map<String, Object>>() {
