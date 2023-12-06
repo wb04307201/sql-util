@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiFunction;
@@ -79,6 +80,36 @@ public class MutilConnectionPool {
      */
     public static synchronized Connection getConnection(DataSource datasource) {
         return getConnection(MASTER_DATASOURCE, datasource);
+    }
+
+    /**
+     * 根据给定的键移除连接池中的连接
+     *
+     * @param key 键值
+     */
+    public static synchronized void remove(String key) {
+        if (poolMap.containsKey(key))
+            poolMap.remove(key).close();
+    }
+
+
+
+    /**
+     * 移除主数据源
+     */
+    public static synchronized void removeMaster() {
+        remove(MASTER_DATASOURCE);
+    }
+
+
+    /**
+     * 清空连接池中的所有连接
+     */
+    public static synchronized void clear() {
+        for (Map.Entry<String, DruidDataSource> entry : poolMap.entrySet()) {
+            entry.getValue().close();
+        }
+        poolMap.clear();
     }
 
 
