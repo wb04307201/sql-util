@@ -43,19 +43,6 @@ public class ExecuteSqlUtils {
 
 
     /**
-     * 执行查询操作并返回结果列表
-     *
-     * @param connection 数据库连接对象
-     * @param sql        SQL语句对象
-     * @param <T>        结果类型
-     * @return 查询结果列表
-     */
-    public static <T> List<T> executeQuery(Connection connection, SQL<T> sql) {
-        return executeQuery(connection, sql.getParse(), sql.getParams(), sql.getClazz());
-    }
-
-
-    /**
      * 执行查询操作并返回结果集
      *
      * @param connection 数据库连接对象
@@ -68,20 +55,32 @@ public class ExecuteSqlUtils {
         return executeQuery(connection, sql, new HashMap<>(), clazz);
     }
 
+
     /**
      * 执行查询操作并返回结果列表
      *
      * @param connection 数据库连接对象
-     * @param sql SQL查询语句
-     * @param params 参数映射
-     * @param type 结果类型引用
-     * @param <T> 结果类型
+     * @param sql        SQL语句对象
+     * @param <T>        结果类型
+     * @return 查询结果列表
+     */
+    public static <T> List<T> executeQuery(Connection connection, SQL<T> sql) {
+        return executeQuery(connection, sql.getParse(), sql.getParams(), sql.getClazz());
+    }
+
+    /**
+     * 执行查询操作并返回结果列表
+     *
+     * @param connection 数据库连接对象
+     * @param sql        SQL查询语句
+     * @param params     参数映射
+     * @param type       结果类型引用
+     * @param <T>        结果类型
      * @return 查询结果列表
      */
     public static <T> List<T> executeQuery(Connection connection, String sql, Map<Integer, Object> params, TypeReference<T> type) {
         return executeQuery(connection, sql, params, (Class<T>) ((ParameterizedType) type.type).getRawType());
     }
-
 
 
     /**
