@@ -120,5 +120,28 @@ public class TestController implements DisposableBean {
     public void destroy() throws Exception {
         connectionPool.destory();
     }
+
+    @GetMapping(value = "/test2")
+    public List<Map<String, Object>> select() {
+        String key = "";
+        String url = "";
+        String username = "";
+        String passowrd = "";
+
+        // 获取链接，也可以注入DataSource后通过DataSource初始化，重构方法没有key如参数时默认数据源key为master
+        try (Connection connection = MutilConnectionPool.getConnection(key, url, username, passowrd)) {
+            // 获取数据源后通过ExecuteSqlUtils工具类执行sql语句进行查询
+            List<Map<String, Object>> list1 = ExecuteSqlUtils.executeQuery(connection, "select a.* from aaaa a", new HashMap<>(), new cn.wubo.sql.util.TypeReference<Map<String, Object>>() {
+            });
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        // MutilConnectionPool工具类中的run方法，将ExecuteSqlUtils.executeQuery使用lambda表达式传入直接执行
+        List<Map<String, Object>> list2 = MutilConnectionPool.run(key, url, username, passowrd, (conn, sql) -> ExecuteSqlUtils.executeQuery(conn, sql, new HashMap<>(), new cn.wubo.sql.util.TypeReference<Map<String, Object>>() {
+        }), "select a.* from aaaa a");
+
+        return list2;
+    }
 }
 ```
