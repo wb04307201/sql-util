@@ -110,7 +110,7 @@ public class TestController implements DisposableBean {
         Connection connection = connectionPool.getConnection();
         // 2. 禁用自动提交
         connection.setAutoCommit(false);
-        // TODO 3. 业务处理，比如使用ModelSqlUtils工具类下方法执行sql
+        // TODO 3. 业务处理，比如使用ExecuteSqlUtils工具类下方法执行sql
         // 4. 提交代码
         connection.commit();
         // 5. 开启自动提交
