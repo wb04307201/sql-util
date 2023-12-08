@@ -50,9 +50,9 @@ public class ModelSqlUtils {
             field.setAccessible(true);
             Object obj = field.get(data);
             if (obj != null) {
-                if (obj instanceof java.sql.Timestamp)
-                    return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(obj);
-                else if (obj instanceof Date) return new SimpleDateFormat("yyyy-MM-dd").format(obj);
+                if (obj instanceof java.sql.Timestamp t)
+                    return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(t);
+                else if (obj instanceof Date d) return new SimpleDateFormat("yyyy-MM-dd").format(d);
                 else return obj;
             } else {
                 return null;

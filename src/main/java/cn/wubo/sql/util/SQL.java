@@ -215,19 +215,11 @@ public class SQL<T> {
         StringBuilder sb = new StringBuilder();
         atomicInteger = new AtomicInteger(0);
         switch (statementType) {
-            case SELECT:
-                selectSQL(sb);
-                break;
-            case INSERT:
-                insertSQL(sb);
-                break;
-            case UPDATE:
-                updateSQL(sb);
-                break;
-            case DELETE:
-                deleteSQL(sb);
-                break;
-            default:
+            case SELECT -> selectSQL(sb);
+            case INSERT -> insertSQL(sb);
+            case UPDATE -> updateSQL(sb);
+            case DELETE -> deleteSQL(sb);
+            default -> throw new IllegalArgumentException("Invalid statementType: " + statementType);
         }
         if (dbType != null) parse = SQLUtils.toSQLString(SQLUtils.parseStatements(sb.toString(), dbType), dbType);
         else parse = sb.toString();
@@ -243,49 +235,49 @@ public class SQL<T> {
     }
 
     private void whereSQL(StringBuilder sb) {
-        String whereSQL = wheres.stream().map(where -> {
-            if (where.getStatementCondition() == StatementCondition.EQ || where.getStatementCondition() == StatementCondition.UEQ || where.getStatementCondition() == StatementCondition.GT || where.getStatementCondition() == StatementCondition.LT || where.getStatementCondition() == StatementCondition.GTEQ || where.getStatementCondition() == StatementCondition.LTEQ) {
+        String whereSQL = wheres.stream().map(where -> switch (where.getStatementCondition()) {
+            case EQ, UEQ, GT, LT, GTEQ, LTEQ -> {
                 params.put(atomicInteger.incrementAndGet(), where.getValue());
-                return where.getField() + where.getStatementCondition().value + "?";
-            } else if (where.getStatementCondition() == StatementCondition.LIKE || where.getStatementCondition() == StatementCondition.ULIKE) {
+                yield where.getField() + where.getStatementCondition().value + "?";
+            }
+            case LIKE, ULIKE -> {
                 String valueStr = "%" + where.getValue() + "%";
                 params.put(atomicInteger.incrementAndGet(), valueStr);
-                return where.getField() + where.getStatementCondition().value + "?";
-            } else if (where.getStatementCondition() == StatementCondition.LLIKE) {
+                yield where.getField() + where.getStatementCondition().value + "?";
+            }
+            case LLIKE -> {
                 String valueStr = "%" + where.getValue();
                 params.put(atomicInteger.incrementAndGet(), valueStr);
-                return where.getField() + where.getStatementCondition().value + "?";
-            } else if (where.getStatementCondition() == StatementCondition.RLIKE) {
+                yield where.getField() + where.getStatementCondition().value + "?";
+            }
+            case RLIKE -> {
                 String valueStr = where.getValue() + "%";
                 params.put(atomicInteger.incrementAndGet(), valueStr);
-                return where.getField() + where.getStatementCondition().value + "?";
-            } else if (where.getStatementCondition() == StatementCondition.BETWEEN || where.getStatementCondition() == StatementCondition.NOTBETWEEN) {
-                if (where.getValue() instanceof List && ((List<Object>) where.getValue()).size() == 2) {
-                    List<Object> valueObjs = (List<Object>) where.getValue();
+                yield where.getField() + where.getStatementCondition().value + "?";
+            }
+            case BETWEEN, NOTBETWEEN -> {
+                if (where.getValue() instanceof List valueObjs && valueObjs.size() == 2) {
                     params.put(atomicInteger.incrementAndGet(), valueObjs.get(0));
                     params.put(atomicInteger.incrementAndGet(), valueObjs.get(1));
-                    return where.getField() + where.getStatementCondition().value + "? AND ?";
+                    yield where.getField() + where.getStatementCondition().value + "? AND ?";
                 } else {
                     throw new SQLRuntimeException("recieving incomplete where condition between values invalid");
                 }
-            } else if (where.getStatementCondition() == StatementCondition.IN || where.getStatementCondition() == StatementCondition.NOTIN) {
-                if (where.getValue() instanceof List) {
-                    List<Object> valueObjs = (List<Object>) where.getValue();
+            }
+            case IN, NOTIN -> {
+                if (where.getValue() instanceof List valueObjs) {
                     if (valueObjs.isEmpty()) {
-                        return "1 = 2";
+                        yield "1 = 2";
                     } else {
                         valueObjs.forEach(valueObj -> params.put(atomicInteger.incrementAndGet(), valueObj));
-                        return where.getField() + where.getStatementCondition().value + "(" + valueObjs.stream().map(obj -> "?").collect(Collectors.joining(",")) + ")";
+                        yield where.getField() + where.getStatementCondition().value + "(" + valueObjs.stream().map(obj -> "?").collect(Collectors.joining(",")) + ")";
                     }
                 } else {
                     throw new SQLRuntimeException("recieving incomplete where condition in values invalid");
                 }
-            } else if (where.getStatementCondition() == StatementCondition.NULL || where.getStatementCondition() == StatementCondition.NOTNULL) {
-                return where.getField() + where.getStatementCondition().value;
-            } else {
-                return null;
             }
-        }).filter(Objects::nonNull).collect(Collectors.joining(" AND "));
+            case NULL, NOTNULL -> where.getField() + where.getStatementCondition().value;
+        }).collect(Collectors.joining(" AND "));
         if (!whereSQL.isEmpty()) sb.append(" WHERE ").append(whereSQL);
     }
 
@@ -318,7 +310,7 @@ public class SQL<T> {
 
     public SQL<T> setDbtype(DbType dbType) {
         this.dbType = dbType;
-        if (parse != null && parse.length() > 0)
+        if (parse != null && !parse.isEmpty())
             parse = SQLUtils.toSQLString(SQLUtils.parseStatements(parse, dbType), dbType);
         return this;
     }
