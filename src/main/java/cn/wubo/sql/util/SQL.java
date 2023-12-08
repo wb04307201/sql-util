@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
 
+import java.lang.reflect.ParameterizedType;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -57,6 +58,10 @@ public class SQL<T> {
 
     public static <T> SQL<T> select(Class<T> clazz, String... columns) {
         return new SQL<>(StatementType.SELECT, Arrays.asList(columns), clazz);
+    }
+
+    public static <T> SQL<T> select(TypeReference<T> typeReference, String... columns) {
+        return new SQL<>(StatementType.SELECT, Arrays.asList(columns), (Class<T>) ((ParameterizedType) typeReference.type).getRawType());
     }
 
     public static <T> SQL<T> insert() {
@@ -305,7 +310,8 @@ public class SQL<T> {
     }
 
     public SQL<T> page(int offset, int count) {
-        if (dbType == null) throw new SQLRuntimeException("before invoke page method,should invoke setDbtype to set dbtype!");
+        if (dbType == null)
+            throw new SQLRuntimeException("before invoke page method,should invoke setDbtype to set dbtype!");
         this.parse = PagerUtils.limit(parse, dbType, offset, count);
         return this;
     }

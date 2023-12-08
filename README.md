@@ -87,6 +87,14 @@ public class TestController implements DisposableBean {
             return ExecuteSqlUtils.executeQuery(connection, sql);
         }, ModelSqlUtils.selectSql("userInfo", new User()).setDbtype(DbType.h2).page(1, 2));
         log.debug(list4.toString());
+
+        // 泛型
+        SQL<Map<String,Object>> mapSQL = SQL.select(new TypeReference<Map<String,Object>>(){},"*").table("userInfo").parse();
+        List<Map<String,Object>> list5 = connectionPool.run((connection, sql) -> {
+            return ExecuteSqlUtils.executeQuery(connection, sql);
+        },mapSQL);
+        log.debug(list5.toString());
+        
         return list4;
     }
 
@@ -121,7 +129,7 @@ public class TestController implements DisposableBean {
         connectionPool.destory();
     }
 
-    @GetMapping(value = "/test2")
+    @GetMapping(value = "/test3")
     public List<Map<String, Object>> select() {
         String key = "";
         String url = "";

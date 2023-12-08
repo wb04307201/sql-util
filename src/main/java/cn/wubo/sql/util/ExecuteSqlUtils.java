@@ -74,12 +74,12 @@ public class ExecuteSqlUtils {
      * @param connection 数据库连接对象
      * @param sql        SQL查询语句
      * @param params     参数映射
-     * @param type       结果类型引用
+     * @param typeReference       结果类型引用
      * @param <T>        结果类型
      * @return 查询结果列表
      */
-    public static <T> List<T> executeQuery(Connection connection, String sql, Map<Integer, Object> params, TypeReference<T> type) {
-        return executeQuery(connection, sql, params, (Class<T>) ((ParameterizedType) type.type).getRawType());
+    public static <T> List<T> executeQuery(Connection connection, String sql, Map<Integer, Object> params, TypeReference<T> typeReference) {
+        return executeQuery(connection, sql, params, (Class<T>) ((ParameterizedType) typeReference.type).getRawType());
     }
 
 
