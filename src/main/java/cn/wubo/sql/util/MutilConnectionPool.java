@@ -36,11 +36,13 @@ public class MutilConnectionPool {
      */
     public static synchronized Connection getConnection(String key, String url, String username, String password) {
         DruidDataSource druidDataSource = new DruidDataSource();
-        druidDataSource.setUrl(url);
-        druidDataSource.setUsername(username);
-        druidDataSource.setPassword(password);
-        return getConnection(key, druidDataSource);
+        druidDataSource.setUrl(url);// 设置数据库URL
+        druidDataSource.setUsername(username); // 设置用户名
+        druidDataSource.setPassword(password);// 设置密码
+        druidDataSource.setConnectionErrorRetryAttempts(3);// 设置连接错误重试次数
+        return getConnection(key, druidDataSource); // 返回数据库连接
     }
+
 
 
     /**
@@ -62,14 +64,19 @@ public class MutilConnectionPool {
      * @return 连接
      */
     public static synchronized Connection getConnection(String key, DataSource datasource) {
+        // 判断数据源是否为DruidDataSource，如果不是则抛出异常
         if (!(datasource instanceof DruidDataSource)) throw new ConnectionPoolException("请使用DruidDataSource!");
+        // 如果poolMap中不包含指定key，则将数据源添加到poolMap中
         if (!poolMap.containsKey(key)) poolMap.putIfAbsent(key, (DruidDataSource) datasource);
         try {
+            // 获取连接
             return poolMap.get(key).getConnection();
         } catch (SQLException e) {
+            // 抛出ConnectionPoolException异常
             throw new ConnectionPoolException(e);
         }
     }
+
 
 
     /**
@@ -88,10 +95,8 @@ public class MutilConnectionPool {
      * @param key 键值
      */
     public static synchronized void remove(String key) {
-        if (poolMap.containsKey(key))
-            poolMap.remove(key).close();
+        if (poolMap.containsKey(key)) poolMap.remove(key).close();
     }
-
 
 
     /**
@@ -134,6 +139,7 @@ public class MutilConnectionPool {
             throw new ConnectionPoolException(e);
         }
     }
+
 
 
     /**
