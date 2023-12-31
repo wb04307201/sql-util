@@ -12,13 +12,80 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiFunction;
 
+import static com.alibaba.druid.pool.DruidAbstractDataSource.*;
+
 /**
  * 多数据源连接池
  */
 @Slf4j
 public class MutilConnectionPool {
 
-    private static final String MASTER_DATASOURCE = "master";
+    private static String masterDatasourceKey = "master";
+    private static Integer initialSize = DEFAULT_INITIAL_SIZE;
+    private static Integer maxActive = DEFAULT_MAX_ACTIVE_SIZE;
+    private static Integer minIdle = DEFAULT_MIN_IDLE;
+    private static Integer maxWait = DEFAULT_MAX_WAIT;
+    private static Integer connectionErrorRetryAttempts = 1;
+
+    /**
+     * 设置默认的主数据源键
+     *
+     * @param masterDatasourceKey 主数据源键
+     */
+    public static void setDefaultMasterDatasourceKey(String masterDatasourceKey) {
+        MutilConnectionPool.masterDatasourceKey = masterDatasourceKey;
+    }
+
+
+    /**
+     * 设置默认的初始大小
+     *
+     * @param initialSize 默认的初始大小
+     */
+    public static void setDefaultInitialSize(Integer initialSize) {
+        MutilConnectionPool.initialSize = initialSize;
+    }
+
+
+    /**
+     * 设置默认的最大连接数
+     *
+     * @param maxActive 最大连接数
+     */
+    public static void setDefaultMaxActive(Integer maxActive) {
+        MutilConnectionPool.maxActive = maxActive;
+    }
+
+
+    /**
+     * 设置默认的最小空闲连接数
+     *
+     * @param minIdle 最小空闲连接数
+     */
+    public static void setDefaultMinIdle(Integer minIdle) {
+        MutilConnectionPool.minIdle = minIdle;
+    }
+
+
+    /**
+     * 设置默认的最大等待时间
+     *
+     * @param maxWait 最大等待时间，以秒为单位
+     */
+    public static void setDefaultMaxWait(Integer maxWait) {
+        MutilConnectionPool.maxWait = maxWait;
+    }
+
+
+    /**
+     * 设置默认的连接错误重试次数
+     *
+     * @param connectionErrorRetryAttempts 连接错误重试次数
+     */
+    public static void setDefaultConnectionErrorRetryAttempts(Integer connectionErrorRetryAttempts) {
+        MutilConnectionPool.connectionErrorRetryAttempts = connectionErrorRetryAttempts;
+    }
+
 
     private MutilConnectionPool() {
     }
@@ -36,13 +103,16 @@ public class MutilConnectionPool {
      */
     public static synchronized Connection getConnection(String key, String url, String username, String password) {
         DruidDataSource druidDataSource = new DruidDataSource();
-        druidDataSource.setUrl(url);// 设置数据库URL
+        druidDataSource.setUrl(url); // 设置数据库URL
         druidDataSource.setUsername(username); // 设置用户名
-        druidDataSource.setPassword(password);// 设置密码
-        druidDataSource.setConnectionErrorRetryAttempts(3);// 设置连接错误重试次数
+        druidDataSource.setPassword(password); // 设置密码
+        druidDataSource.setInitialSize(initialSize);
+        druidDataSource.setMaxActive(maxActive);
+        druidDataSource.setMinIdle(minIdle);
+        druidDataSource.setMaxWait(maxWait);
+        druidDataSource.setConnectionErrorRetryAttempts(connectionErrorRetryAttempts); // 设置连接错误重试次数
         return getConnection(key, druidDataSource); // 返回数据库连接
     }
-
 
 
     /**
@@ -54,7 +124,7 @@ public class MutilConnectionPool {
      * @return 返回数据库连接
      */
     public static synchronized Connection getConnection(String url, String username, String password) {
-        return getConnection(MASTER_DATASOURCE, url, username, password);
+        return getConnection(masterDatasourceKey, url, username, password);
     }
 
     /**
@@ -78,7 +148,6 @@ public class MutilConnectionPool {
     }
 
 
-
     /**
      * 获取连接
      *
@@ -86,7 +155,7 @@ public class MutilConnectionPool {
      * @return 连接
      */
     public static synchronized Connection getConnection(DataSource datasource) {
-        return getConnection(MASTER_DATASOURCE, datasource);
+        return getConnection(masterDatasourceKey, datasource);
     }
 
     /**
@@ -103,7 +172,7 @@ public class MutilConnectionPool {
      * 移除主数据源
      */
     public static synchronized void removeMaster() {
-        remove(MASTER_DATASOURCE);
+        remove(masterDatasourceKey);
     }
 
 
@@ -141,7 +210,6 @@ public class MutilConnectionPool {
     }
 
 
-
     /**
      * 执行一个给定的函数作用于一个连接上，并返回结果。
      *
@@ -155,8 +223,8 @@ public class MutilConnectionPool {
      * @return 函数的返回值
      */
     public static <U, R> R run(String url, String username, String password, BiFunction<Connection, U, R> biFunction, U u) {
-        // 调用run方法，使用MASTER_DATASOURCE主数据源执行函数作用于连接上，并返回结果
-        return run(MASTER_DATASOURCE, url, username, password, biFunction, u);
+        // 调用run方法，使用masterDatasourceKey主数据源执行函数作用于连接上，并返回结果
+        return run(masterDatasourceKey, url, username, password, biFunction, u);
     }
 
 
@@ -192,8 +260,6 @@ public class MutilConnectionPool {
      * @return 函数执行的结果。
      */
     public static <U, R> R run(DataSource datasource, BiFunction<Connection, U, R> biFunction, U u) {
-        return run(MASTER_DATASOURCE, datasource, biFunction, u);
+        return run(masterDatasourceKey, datasource, biFunction, u);
     }
-
-
 }

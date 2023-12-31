@@ -20,6 +20,7 @@
 | MutilConnectionPool | 一个多数据源连接池                                                                           |
 | SQL                 | SQL构造工具类                                                                            |
 
+#### ModelSqlUtils、ExecuteSqlUtils、ConnectionPool、SQL的使用示例
 ```java
 @Slf4j
 @RestController
@@ -161,4 +162,28 @@ public class TestController implements DisposableBean {
         return list2;
     }
 }
+```
+#### MutilConnectionPool多数据源连接池的使用示例
+```java
+        // 获取链接，注意多数据源连接池仅支持传入DruidDatasource，如果需要使用多数据源，需要从DynamicRoutingDataSource中获取真实的DataSource，默认数据源key为master
+        ItemDataSource itemDataSource = (ItemDataSource) dataSource.getDataSource("master");
+        Connection connection1 = cn.wubo.sql.util.MutilConnectionPool.getConnection(itemDataSource.getRealDataSource());
+        // 也可以使用自定义的数据源key用来区分连接池
+        Connection connection2 = MutilConnectionPool.getConnection("datasourceKey", new com.alibaba.druid.pool.DruidDataSource());
+        // 也可以通过数据源信息创建连接
+        DataSourceInfo dataSourceInfo = new DataSourceInfo();
+        Connection connection3 = MutilConnectionPool.getConnection(String.valueOf(dataSourceInfo.getDataSourceId()), dataSourceInfo.getUrl(), dataSourceInfo.getUserName(), dataSourceInfo.getPassword());
+
+        // MutilConnectionPool工具类中的run方法，将ExecuteSqlUtils.executeQuery使用lambda表达式传入直接执行
+        List<Map<String, Object>> list2 = MutilConnectionPool.run(itemDataSource.getRealDataSource(), (conn, sql) -> ExecuteSqlUtils.executeQuery(conn, sql, new HashMap<>(), new cn.wubo.sql.util.TypeReference<Map<String, Object>>() {
+        }), "select a.* from aaaa a");
+        List<Map<String, Object>> list3 = MutilConnectionPool.run(String.valueOf(dataSourceInfo.getDataSourceId()), dataSourceInfo.getUrl(), dataSourceInfo.getUserName(), dataSourceInfo.getPassword(), (conn, sql) -> ExecuteSqlUtils.executeQuery(conn, sql, new HashMap<>(), new cn.wubo.sql.util.TypeReference<Map<String, Object>>() {
+        }), "select a.* from aaaa a");
+        
+        // 可设置连接池的默认配置，如连接池初始化连接数、最大连接数、最小连接数、最大等待时间等
+        // 通过传入DruidDatasource的方式不支持上述配置
+        MutilConnectionPool.setDefaultInitialSize
+        MutilConnectionPool.setDefaultMaxActive
+        MutilConnectionPool.setDefaultMinIdle
+        MutilConnectionPool.setDefaultMaxWait
 ```
