@@ -26,6 +26,7 @@ public class MutilConnectionPool {
     private static Integer minIdle = DEFAULT_MIN_IDLE;
     private static Integer maxWait = DEFAULT_MAX_WAIT;
     private static Integer connectionErrorRetryAttempts = 1;
+    private static Boolean breakAfterAcquireFailure = Boolean.FALSE;
 
     /**
      * 设置默认的主数据源键
@@ -87,6 +88,17 @@ public class MutilConnectionPool {
     }
 
 
+    /**
+     * 设置获取连接失败后是否中断连接池的使用
+     *
+     * @param breakAfterAcquireFailure 获取连接失败后是否中断连接池的使用
+     */
+    public static void setDefaultBreakAfterAcquireFailure(Boolean breakAfterAcquireFailure) {
+        MutilConnectionPool.breakAfterAcquireFailure = breakAfterAcquireFailure;
+    }
+
+
+
     private MutilConnectionPool() {
     }
 
@@ -111,6 +123,7 @@ public class MutilConnectionPool {
         druidDataSource.setMinIdle(minIdle);
         druidDataSource.setMaxWait(maxWait);
         druidDataSource.setConnectionErrorRetryAttempts(connectionErrorRetryAttempts); // 设置连接错误重试次数
+        druidDataSource.setBreakAfterAcquireFailure(breakAfterAcquireFailure);
         return getConnection(key, druidDataSource); // 返回数据库连接
     }
 
