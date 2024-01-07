@@ -98,7 +98,6 @@ public class MutilConnectionPool {
     }
 
 
-
     private MutilConnectionPool() {
     }
 
@@ -114,6 +113,9 @@ public class MutilConnectionPool {
      * @return 数据库连接
      */
     public static synchronized Connection getConnection(String key, String url, String username, String password) {
+        // 参数有效性检查
+        if (key == null || url == null || username == null || password == null)
+            throw new IllegalArgumentException("key, url, username, and password must not be null！");
         DruidDataSource druidDataSource = new DruidDataSource();
         druidDataSource.setUrl(url); // 设置数据库URL
         druidDataSource.setUsername(username); // 设置用户名
