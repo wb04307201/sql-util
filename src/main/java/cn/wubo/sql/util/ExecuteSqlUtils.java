@@ -73,11 +73,11 @@ public class ExecuteSqlUtils {
     /**
      * 执行查询操作并返回结果列表
      *
-     * @param connection 数据库连接对象
-     * @param sql        SQL查询语句
-     * @param params     参数映射
-     * @param typeReference       结果类型引用
-     * @param <T>        结果类型
+     * @param connection    数据库连接对象
+     * @param sql           SQL查询语句
+     * @param params        参数映射
+     * @param typeReference 结果类型引用
+     * @param <T>           结果类型
      * @return 查询结果列表
      */
     public static <T> List<T> executeQuery(Connection connection, String sql, Map<Integer, Object> params, TypeReference<T> typeReference) {
@@ -314,24 +314,7 @@ public class ExecuteSqlUtils {
                         Class<?>[] paramTypes = methodEntity.getMethodParamTypes();
                         Method method = clazz.getMethod(methodName, paramTypes);
                         // 如果重载方法数 > 1，则判断是否有java.lang.IllegalArgumentException异常，循环处理
-                        try {
-                            // 设置参数,实体对象，实体对象方法参数
-                            method.invoke(row, objColumnValue);
-                        } catch (IllegalArgumentException | InvocationTargetException | IllegalAccessException e) {
-                            log.debug(e.getMessage(), e);
-                            // 处理重载方法
-                            for (int j = 1; j < repeatMethodNum; j++) {
-                                try {
-                                    Class<?>[] repeatParamTypes = methodEntity.getRepeatMethodsParamTypes(j - 1);
-                                    method = clazz.getMethod(methodName, repeatParamTypes);
-                                    method.invoke(row, objColumnValue);
-                                    break;
-                                } catch (IllegalArgumentException | InvocationTargetException |
-                                         IllegalAccessException ex) {
-                                    log.debug(ex.getMessage(), ex);
-                                }
-                            }
-                        }
+                        trySetValue(clazz, method, row, objColumnValue, repeatMethodNum, methodEntity, methodName);
                     }
                 }
             } catch (SQLException | NoSuchMethodException e) {
@@ -339,6 +322,43 @@ public class ExecuteSqlUtils {
             }
         });
         return row;
+    }
+
+    private static <T> void trySetValue(Class<T> clazz, Method method, T row, Object objColumnValue, int repeatMethodNum, MethodEntity methodEntity, String methodName) throws NoSuchMethodException {
+        try {
+            // 尝试设置参数值
+            method.invoke(row, objColumnValue);
+        } catch (IllegalArgumentException | InvocationTargetException | IllegalAccessException e) {
+            log.debug(e.getMessage(), e);
+            // 处理重载方法
+            tryOverride(clazz, repeatMethodNum, methodEntity, methodName, row, objColumnValue);
+        }
+    }
+
+
+    /**
+     * 尝试覆盖指定类中的重载方法，将指定参数值传入方法并调用
+     *
+     * @param clazz           指定的类对象
+     * @param repeatMethodNum 重载方法的个数
+     * @param methodEntity    包含重载方法信息的实体对象
+     * @param methodName      重载方法名
+     * @param row             指定的对象行（用于确定调用的类）
+     * @param objColumnValue  参数值对象
+     * @throws NoSuchMethodException 如果找不到指定的重载方法
+     */
+    private static <T> void tryOverride(Class<T> clazz, int repeatMethodNum, MethodEntity methodEntity, String methodName, T row, Object objColumnValue) throws NoSuchMethodException {
+        Method method;
+        for (int j = 1; j < repeatMethodNum; j++) {
+            try {
+                Class<?>[] repeatParamTypes = methodEntity.getRepeatMethodsParamTypes(j - 1);
+                method = clazz.getMethod(methodName, repeatParamTypes);
+                method.invoke(row, objColumnValue);
+                break;
+            } catch (IllegalArgumentException | InvocationTargetException | IllegalAccessException ex) {
+                log.debug(ex.getMessage(), ex);
+            }
+        }
     }
 
 

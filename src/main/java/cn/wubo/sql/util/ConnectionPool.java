@@ -160,7 +160,7 @@ public class ConnectionPool {
      * 运行给定的BiFunction，并返回结果。
      *
      * @param biFunction 一个接受Connection和U作为参数，并返回R结果的BiFunction
-     * @param u 传入BiFunction的第一个参数
+     * @param u          传入BiFunction的第一个参数
      * @return U传入BiFunction的结果
      */
     public <U, R> R run(BiFunction<Connection, U, R> biFunction, U u) {
@@ -169,8 +169,10 @@ public class ConnectionPool {
         try {
             conn = getConnection();
             result = biFunction.apply(conn, u);
-        } catch (SQLException | InterruptedException e) {
+        } catch (SQLException e) {
             throw new ConnectionPoolException(e.getMessage(), e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         } finally {
             if (conn != null) returnConnection(conn);
         }
@@ -182,15 +184,17 @@ public class ConnectionPool {
      * 运行方法
      *
      * @param biConsumer 二元消费者
-     * @param u 参数u
+     * @param u          参数u
      */
     public <U> void run(BiConsumer<Connection, U> biConsumer, U u) {
         Connection conn = null;
         try {
             conn = getConnection();
             biConsumer.accept(conn, u);
-        } catch (SQLException | InterruptedException e) {
+        } catch (SQLException e) {
             throw new ConnectionPoolException(e.getMessage(), e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         } finally {
             if (conn != null) returnConnection(conn);
         }
