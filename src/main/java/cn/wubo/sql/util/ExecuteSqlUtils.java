@@ -17,6 +17,8 @@ import java.util.concurrent.ConcurrentMap;
 @Slf4j
 public class ExecuteSqlUtils {
 
+    private static final String MAP_NAME = "java.util.Map";
+
     private ExecuteSqlUtils() {
     }
 
@@ -196,7 +198,7 @@ public class ExecuteSqlUtils {
 
     private static <T> Boolean isMap(Class<T> clazz) {
         // 判断给定的类是否是Map接口或其实现类
-        return clazz.getName().equals("java.util.Map") || Arrays.stream(clazz.getInterfaces()).anyMatch(item -> item.getName().equals("java.util.Map")) || Arrays.stream(clazz.getSuperclass().getInterfaces()).anyMatch(item -> item.getName().equals("java.util.Map"));
+        return clazz.getName().equals(MAP_NAME) || Arrays.stream(clazz.getInterfaces()).anyMatch(item -> item.getName().equals(MAP_NAME)) || Arrays.stream(clazz.getSuperclass().getInterfaces()).anyMatch(item -> item.getName().equals(MAP_NAME));
     }
 
 

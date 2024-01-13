@@ -23,12 +23,10 @@ public class SQL<T> {
     private AtomicInteger atomicInteger;
     @Getter
     private DbType dbType;
-
     @Getter
     private String parse;
     @Getter
     private Map<Integer, Object> params = new HashMap<>();
-
     @Getter
     private Class<T> clazz;
 
@@ -244,10 +242,10 @@ public class SQL<T> {
 
     private void whereSQL(StringBuilder sb) {
         String whereSQL = wheres.stream().map(where -> {
-            if (where.getStatementCondition() == StatementCondition.EQ || where.getStatementCondition() == StatementCondition.UEQ || where.getStatementCondition() == StatementCondition.GT || where.getStatementCondition() == StatementCondition.LT || where.getStatementCondition() == StatementCondition.GTEQ || where.getStatementCondition() == StatementCondition.LTEQ) {
+            if (Boolean.TRUE.equals(FunctionUtils.compileConditionOr(where, t -> where.getStatementCondition() == StatementCondition.EQ, t -> where.getStatementCondition() == StatementCondition.UEQ, t -> where.getStatementCondition() == StatementCondition.GT, t -> where.getStatementCondition() == StatementCondition.GTEQ, t -> where.getStatementCondition() == StatementCondition.LT, t -> where.getStatementCondition() == StatementCondition.LTEQ))) {
                 params.put(atomicInteger.incrementAndGet(), where.getValue());
                 return where.getField() + where.getStatementCondition().value + "?";
-            } else if (where.getStatementCondition() == StatementCondition.LIKE || where.getStatementCondition() == StatementCondition.ULIKE) {
+            } else if (Boolean.TRUE.equals(FunctionUtils.compileConditionOr(where, t -> where.getStatementCondition() == StatementCondition.LIKE, t -> where.getStatementCondition() == StatementCondition.ULIKE))) {
                 String valueStr = "%" + where.getValue() + "%";
                 params.put(atomicInteger.incrementAndGet(), valueStr);
                 return where.getField() + where.getStatementCondition().value + "?";
@@ -259,28 +257,24 @@ public class SQL<T> {
                 String valueStr = where.getValue() + "%";
                 params.put(atomicInteger.incrementAndGet(), valueStr);
                 return where.getField() + where.getStatementCondition().value + "?";
-            } else if (where.getStatementCondition() == StatementCondition.BETWEEN || where.getStatementCondition() == StatementCondition.NOTBETWEEN) {
-                if (where.getValue() instanceof List && ((List<Object>) where.getValue()).size() == 2) {
-                    List<Object> valueObjs = (List<Object>) where.getValue();
+            } else if (Boolean.TRUE.equals(FunctionUtils.compileConditionOr(where, t -> where.getStatementCondition() == StatementCondition.BETWEEN, t -> where.getStatementCondition() == StatementCondition.NOTBETWEEN))) {
+                return FunctionUtils.buildCondition(where, t -> FunctionUtils.compileConditionAnd(t, tt -> tt.getValue() instanceof List, tt -> ((List<?>) tt.getValue()).size() == 2), t -> {
+                    List<?> valueObjs = (List<?>) where.getValue();
                     params.put(atomicInteger.incrementAndGet(), valueObjs.get(0));
                     params.put(atomicInteger.incrementAndGet(), valueObjs.get(1));
                     return where.getField() + where.getStatementCondition().value + "? AND ?";
-                } else {
-                    throw new SQLRuntimeException("recieving incomplete where condition between values invalid");
-                }
-            } else if (where.getStatementCondition() == StatementCondition.IN || where.getStatementCondition() == StatementCondition.NOTIN) {
-                if (where.getValue() instanceof List) {
-                    List<Object> valueObjs = (List<Object>) where.getValue();
+                });
+            } else if (Boolean.TRUE.equals(FunctionUtils.compileConditionOr(where, t -> where.getStatementCondition() == StatementCondition.IN, t -> where.getStatementCondition() == StatementCondition.NOTIN))) {
+                return FunctionUtils.buildCondition(where, t -> where.getValue() instanceof List, t -> {
+                    List<?> valueObjs = (List<?>) where.getValue();
                     if (valueObjs.isEmpty()) {
                         return "1 = 2";
                     } else {
                         valueObjs.forEach(valueObj -> params.put(atomicInteger.incrementAndGet(), valueObj));
                         return where.getField() + where.getStatementCondition().value + "(" + valueObjs.stream().map(obj -> "?").collect(Collectors.joining(",")) + ")";
                     }
-                } else {
-                    throw new SQLRuntimeException("recieving incomplete where condition in values invalid");
-                }
-            } else if (where.getStatementCondition() == StatementCondition.NULL || where.getStatementCondition() == StatementCondition.NOTNULL) {
+                });
+            } else if (Boolean.TRUE.equals(FunctionUtils.compileConditionOr(where, t -> where.getStatementCondition() == StatementCondition.NULL, t -> where.getStatementCondition() == StatementCondition.NOTNULL))) {
                 return where.getField() + where.getStatementCondition().value;
             } else {
                 return null;
