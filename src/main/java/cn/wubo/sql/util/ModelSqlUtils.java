@@ -26,13 +26,16 @@ public class ModelSqlUtils {
      * 排除合成字段
      * 排除static final
      *
-     * @param clasz  类
+     * @param clazz  类
      * @param fields Field集合
      */
-    private static void getFields(Class<?> clasz, List<Field> fields) {
-        if (clasz != null) {
-            fields.addAll(Arrays.stream(clasz.getDeclaredFields()).filter(field -> !field.isSynthetic()).filter(field -> !(Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(field.getModifiers()))).collect(Collectors.toList()));
-            getFields(clasz.getSuperclass(), fields);
+    private static void getFields(Class<?> clazz, List<Field> fields) {
+        if (clazz != null) {
+            // 获取类的字段
+            fields.addAll(Arrays.stream(clazz.getDeclaredFields()).filter(field -> !field.isSynthetic()).filter(field -> !(Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(field.getModifiers()))).collect(Collectors.toList()));
+
+            // 获取父类的字段
+            getFields(clazz.getSuperclass(), fields);
         }
     }
 
@@ -41,8 +44,8 @@ public class ModelSqlUtils {
      * 对值的处理
      *
      * @param field 字段
-     * @param data 数据
-     * @param <T> 数据类型
+     * @param data  数据
+     * @param <T>   数据类型
      * @return 处理后的值
      */
     private static <T> Object getValue(Field field, T data) {
@@ -50,9 +53,12 @@ public class ModelSqlUtils {
             field.setAccessible(true);
             Object obj = field.get(data);
             if (obj != null) {
+                // 如果值是java.sql.Timestamp类型，则格式化为"yyyy-MM-dd HH:mm:ss.SSS"格式
                 if (obj instanceof java.sql.Timestamp)
                     return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(obj);
+                // 如果值是Date类型，则格式化为"yyyy-MM-dd"格式
                 else if (obj instanceof Date) return new SimpleDateFormat("yyyy-MM-dd").format(obj);
+                // 其他情况下直接返回值
                 else return obj;
             } else {
                 return null;
@@ -70,6 +76,7 @@ public class ModelSqlUtils {
      * @return 转换后的数据库类型
      */
     private static String getType(Field field) {
+        // 根据字段类型进行数据库类型的转换
         if (field.getType().equals(Integer.class)) {
             return "int";  // 整数类型转换为数据库的整数类型
         } else if (field.getType().equals(Long.class)) {
@@ -107,6 +114,7 @@ public class ModelSqlUtils {
      * @return SQL对象
      */
     public static <T> SQL<T> insertSql(String tableName, T data) {
+        // 创建SQL对象并设置表名
         SQL<T> sql = SQL.<T>insert().table(tableName);
 
         // 获取数据类的字段
@@ -115,6 +123,7 @@ public class ModelSqlUtils {
 
         // 遍历字段列表，将非空字段添加到SQL的set语句中
         fields.stream().forEach(field -> {
+            // 获取字段的值
             Object valObj = getValue(field, data);
             if (valObj != null) sql.addSet(field.getName(), valObj);
         });
@@ -122,7 +131,6 @@ public class ModelSqlUtils {
         // 解析SQL语句
         return sql.parse();
     }
-
 
 
     /**
@@ -134,6 +142,7 @@ public class ModelSqlUtils {
      * @return sql
      */
     public static <T> SQL<T> updateByIdSql(String tableName, T data) {
+        // 创建SQL对象
         SQL<T> sql = SQL.<T>update().table(tableName);
 
         // 获取所有字段
@@ -169,6 +178,7 @@ public class ModelSqlUtils {
      * @return SQL对象
      */
     public static <T> SQL<T> deleteByIdSql(String tableName, T data) {
+        // 创建SQL对象
         SQL<T> sql = SQL.<T>delete().table(tableName);
 
         // 获取数据的字段列表
@@ -192,38 +202,47 @@ public class ModelSqlUtils {
     }
 
 
-
     /**
      * 生成查询的SQL语句
      *
      * @param tableName 表名
-     * @param data 数据
-     * @param <T> 实体类
+     * @param data      数据
+     * @param <T>       实体类
      * @return SQL对象
      */
     public static <T> SQL<T> selectSql(String tableName, T data) {
+        // 创建SQL对象
         SQL<T> sql = (SQL<T>) SQL.select(data.getClass()).table(tableName);
+
+        // 获取数据的字段列表
         List<Field> fields = new ArrayList<>();
         getFields(data.getClass(), fields);
+
+        // 遍历字段列表，根据字段值生成where条件
         fields.forEach(field -> {
             Object valObj = getValue(field, data);
             if (valObj != null) sql.addWhereEQ(field.getName(), valObj);
         });
+
+        // 解析并返回SQL
         return sql.parse();
     }
 
 
-
     /**
      * 根据给定的表名和实体class，生成创建表的SQL语句
+     *
      * @param tableName 表名
-     * @param clazz 实体class
-     * @param <T> 实体类
+     * @param clazz     实体class
+     * @param <T>       实体类
      * @return 创建表的SQL语句
      */
     public static <T> String createSql(String tableName, Class<T> clazz) {
+        // 获取实体类的所有字段
         List<Field> fields = new ArrayList<>();
         getFields(clazz, fields);
+
+        // 构建SQL语句
         StringBuilder sb = new StringBuilder();
         sb.append("create table ").append(tableName).append(" (");
         fields.forEach(field -> sb.append(field.getName()).append(" ").append(getType(field)).append(","));
@@ -231,7 +250,6 @@ public class ModelSqlUtils {
         sb.delete(length - 1, length).append(")");
         return sb.toString();
     }
-
 
 
     /**
@@ -242,11 +260,12 @@ public class ModelSqlUtils {
      * @return 生成的 SQL 语句
      */
     public static <T> String createSql(String tableName, T data) {
+        // 调用 createSql 方法，传入表名和数据对象的 class
         return createSql(tableName, data.getClass());
     }
 
     /**
-     * 删除指定的数据库表
+     * 根据给定的表名，生成删除表的SQL语句
      *
      * @param tableName 要删除的表名
      * @return 返回删除表的SQL语句
@@ -254,5 +273,6 @@ public class ModelSqlUtils {
     public static String dropSql(String tableName) {
         return "drop table " + tableName;
     }
+
 
 }

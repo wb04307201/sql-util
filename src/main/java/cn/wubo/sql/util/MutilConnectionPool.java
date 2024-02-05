@@ -20,22 +20,12 @@ import static com.alibaba.druid.pool.DruidAbstractDataSource.*;
 @Slf4j
 public class MutilConnectionPool {
 
-    private static String masterDatasourceKey = "master";
     private static Integer initialSize = DEFAULT_INITIAL_SIZE;
     private static Integer maxActive = DEFAULT_MAX_ACTIVE_SIZE;
     private static Integer minIdle = DEFAULT_MIN_IDLE;
     private static Integer maxWait = DEFAULT_MAX_WAIT;
     private static Integer connectionErrorRetryAttempts = 1;
     private static Boolean breakAfterAcquireFailure = Boolean.FALSE;
-
-    /**
-     * 设置默认的主数据源键
-     *
-     * @param masterDatasourceKey 主数据源键
-     */
-    public static void setDefaultMasterDatasourceKey(String masterDatasourceKey) {
-        MutilConnectionPool.masterDatasourceKey = masterDatasourceKey;
-    }
 
 
     /**
@@ -104,18 +94,33 @@ public class MutilConnectionPool {
     private static ConcurrentMap<String, DruidDataSource> poolMap = new ConcurrentHashMap<>();
 
     /**
-     * 获取连接
+     * 检查key是否存在于缓存池中
      *
-     * @param key      连接池的键
-     * @param url      连接URL
-     * @param username 用户名
-     * @param password 密码
-     * @return 数据库连接
+     * @param key 缓存池的key
+     * @return true表示存在，false表示不存在
      */
-    public static synchronized Connection getConnection(String key, String url, String username, String password) {
+    public static synchronized Boolean check(String key) {
+        // 检查key是否为空
+        StringUtils.isEmpty("key", key);
+        // 检查key是否存在于缓存池中
+        return poolMap.containsKey(key);
+    }
+
+
+    /**
+     * 初始化数据源
+     *
+     * @param key      数据源的唯一标识
+     * @param url      数据库URL
+     * @param username 数据库用户名
+     * @param password 数据库密码
+     */
+    public static synchronized void init(String key, String url, String username, String password) {
         // 参数有效性检查
-        if (key == null || url == null || username == null || password == null)
-            throw new IllegalArgumentException("key, url, username, and password must not be null！");
+        StringUtils.isEmpty("key", key);
+        // 参数有效性检查
+        StringUtils.isEmpty("url, username, and password", url, username, password);
+        // 创建DruidDataSource对象
         DruidDataSource druidDataSource = new DruidDataSource();
         druidDataSource.setUrl(url); // 设置数据库URL
         druidDataSource.setUsername(username); // 设置用户名
@@ -126,52 +131,50 @@ public class MutilConnectionPool {
         druidDataSource.setMaxWait(maxWait);
         druidDataSource.setConnectionErrorRetryAttempts(connectionErrorRetryAttempts); // 设置连接错误重试次数
         druidDataSource.setBreakAfterAcquireFailure(breakAfterAcquireFailure);
-        return getConnection(key, druidDataSource); // 返回数据库连接
+        // 将DruidDataSource对象存入map中
+        poolMap.putIfAbsent(key, druidDataSource);
     }
 
 
     /**
-     * 获取连接
+     * 初始化连接池
      *
-     * @param url      数据库连接URL
-     * @param username 用户名
-     * @param password 密码
-     * @return 返回数据库连接
-     */
-    public static synchronized Connection getConnection(String url, String username, String password) {
-        return getConnection(masterDatasourceKey, url, username, password);
-    }
-
-    /**
-     * 获取连接
-     *
+     * @param key        连接池的key
      * @param datasource 数据源
-     * @return 连接
      */
-    public static synchronized Connection getConnection(String key, DataSource datasource) {
-        // 判断数据源是否为DruidDataSource，如果不是则抛出异常
+    public static synchronized void init(String key, DataSource datasource) {
+        StringUtils.isEmpty("key", key);
         if (!(datasource instanceof DruidDataSource)) throw new ConnectionPoolException("请使用DruidDataSource!");
-        // 如果poolMap中不包含指定key，则将数据源添加到poolMap中
-        if (!poolMap.containsKey(key)) poolMap.putIfAbsent(key, (DruidDataSource) datasource);
-        try {
-            // 获取连接
-            return poolMap.get(key).getConnection();
-        } catch (SQLException e) {
-            // 抛出ConnectionPoolException异常
-            throw new ConnectionPoolException(e);
+        // 将数据源存入map中
+        poolMap.putIfAbsent(key, (DruidDataSource) datasource);
+    }
+
+
+    /**
+     * 获取连接
+     *
+     * @param key 连接池的键
+     * @return 数据库连接
+     */
+    public static synchronized Connection getConnection(String key) {
+        // 检查参数是否为空
+        StringUtils.isEmpty("key", key);
+
+        // 检查连接池是否已初始化
+        if (poolMap.containsKey(key)) {
+            try {
+                // 获取连接
+                return poolMap.get(key).getConnection();
+            } catch (SQLException e) {
+                // 抛出异常
+                throw new ConnectionPoolException(e.getMessage(), e);
+            }
+        } else {
+            // 抛出异常
+            throw new ConnectionPoolException("数据源还未初始化");
         }
     }
 
-
-    /**
-     * 获取连接
-     *
-     * @param datasource 数据源
-     * @return 连接
-     */
-    public static synchronized Connection getConnection(DataSource datasource) {
-        return getConnection(masterDatasourceKey, datasource);
-    }
 
     /**
      * 根据给定的键移除连接池中的连接
@@ -179,15 +182,13 @@ public class MutilConnectionPool {
      * @param key 键值
      */
     public static synchronized void remove(String key) {
-        if (poolMap.containsKey(key)) poolMap.remove(key).close();
-    }
-
-
-    /**
-     * 移除主数据源
-     */
-    public static synchronized void removeMaster() {
-        remove(masterDatasourceKey);
+        // 检查连接池中是否存在该键
+        if (poolMap.containsKey(key)) {
+            // 关闭连接池
+            poolMap.get(key).close();
+            // 移除连接池
+            poolMap.remove(key);
+        }
     }
 
 
@@ -195,9 +196,12 @@ public class MutilConnectionPool {
      * 清空连接池中的所有连接
      */
     public static synchronized void clear() {
+        // 遍历连接池中的所有键值对
         for (Map.Entry<String, DruidDataSource> entry : poolMap.entrySet()) {
+            // 关闭连接池
             entry.getValue().close();
         }
+        // 清空连接池
         poolMap.clear();
     }
 
@@ -206,9 +210,6 @@ public class MutilConnectionPool {
      * 执行指定的BiFunction函数在一个新的数据库连接上
      *
      * @param key        数据库连接的key
-     * @param url        数据库连接的URL
-     * @param username   数据库连接的用户名
-     * @param password   数据库连接的密码
      * @param biFunction 需要执行的BiFunction函数
      * @param u          BiFunction函数的参数
      * @param <U>        BiFunction函数的参数类型
@@ -216,65 +217,14 @@ public class MutilConnectionPool {
      * @return BiFunction函数的返回值
      * @throws ConnectionPoolException 如果获取数据库连接失败
      */
-    public static <U, R> R run(String key, String url, String username, String password, BiFunction<Connection, U, R> biFunction, U u) {
-        try (Connection connection = getConnection(key, url, username, password)) {
+    public static <U, R> R run(String key, BiFunction<Connection, U, R> biFunction, U u) {
+        try (Connection connection = getConnection(key)) {
+            // 在数据库连接上执行BiFunction函数
             return biFunction.apply(connection, u);
         } catch (SQLException e) {
+            // 如果获取数据库连接失败，则抛出ConnectionPoolException异常
             throw new ConnectionPoolException(e);
         }
     }
 
-
-    /**
-     * 执行一个给定的函数作用于一个连接上，并返回结果。
-     *
-     * @param url        数据库连接URL
-     * @param username   数据库用户名
-     * @param password   数据库密码
-     * @param biFunction 作用于连接上的函数
-     * @param u          传入到函数中的参数
-     * @param <U>        函数参数类型
-     * @param <R>        函数返回值类型
-     * @return 函数的返回值
-     */
-    public static <U, R> R run(String url, String username, String password, BiFunction<Connection, U, R> biFunction, U u) {
-        // 调用run方法，使用masterDatasourceKey主数据源执行函数作用于连接上，并返回结果
-        return run(masterDatasourceKey, url, username, password, biFunction, u);
-    }
-
-
-    /**
-     * 执行指定的函数操作数据库，并返回结果。
-     *
-     * @param key        数据库连接池中的连接键
-     * @param datasource 数据源
-     * @param biFunction 数据库操作函数，接受一个连接和一个额外参数，并返回结果
-     * @param u          额外参数
-     * @param <U>        额外参数类型
-     * @param <R>        返回结果类型
-     * @return 操作结果
-     * @throws ConnectionPoolException 连接池异常
-     */
-    public static <U, R> R run(String key, DataSource datasource, BiFunction<Connection, U, R> biFunction, U u) {
-        try (Connection connection = getConnection(key, datasource)) {
-            return biFunction.apply(connection, u);
-        } catch (SQLException e) {
-            throw new ConnectionPoolException(e);
-        }
-    }
-
-
-    /**
-     * 运行给定的函数并在指定的数据源上执行操作。
-     *
-     * @param datasource 数据源，指定要执行操作的数据源。
-     * @param biFunction 运行的函数，接受一个连接和一个参数，并返回一个结果。
-     * @param u          参数，传递给函数的参数。
-     * @param <U>        参数类型。
-     * @param <R>        结果类型。
-     * @return 函数执行的结果。
-     */
-    public static <U, R> R run(DataSource datasource, BiFunction<Connection, U, R> biFunction, U u) {
-        return run(masterDatasourceKey, datasource, biFunction, u);
-    }
 }

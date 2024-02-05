@@ -3,6 +3,7 @@ package cn.wubo.sql.util.entity;
 import lombok.Data;
 
 import java.util.ArrayList;
+import java.util.List;
 
 @Data
 public class MethodEntity {
@@ -11,19 +12,19 @@ public class MethodEntity {
     //重载方法个数
     private int repeatMethodNum = 1;
     //方法参数类型列表
-    private Class[] methodParamTypes;
+    private Class<?>[] methodParamTypes;
     //存放重载方法参数
-    private ArrayList repeatMethodsParamTypes;
+    private List<Class<?>[]> repeatMethodsParamTypes;
 
     /**
      * 获取第i个重载方法参数列表
      *
      * @return
      */
-    public Class[] getRepeatMethodsParamTypes(int i) {
+    public Class<?>[] getRepeatMethodsParamTypes(int i) {
         int count = this.repeatMethodsParamTypes.size();
         if (i <= count) {
-            return (Class[]) this.repeatMethodsParamTypes.get(i);
+            return this.repeatMethodsParamTypes.get(i);
         } else {
             throw new ArrayIndexOutOfBoundsException();
         }
@@ -34,9 +35,9 @@ public class MethodEntity {
      *
      * @param paramTypes
      */
-    public void setRepeatMethodsParamTypes(Class[] paramTypes) {
+    public void setRepeatMethodsParamTypes(Class<?>[] paramTypes) {
         if (this.repeatMethodsParamTypes == null) {
-            this.repeatMethodsParamTypes = new ArrayList();
+            this.repeatMethodsParamTypes = new ArrayList<>();
         }
         repeatMethodsParamTypes.add(paramTypes);
     }
