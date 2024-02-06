@@ -1,4 +1,4 @@
-package cn.wubo.sql.util.annotation;
+package cn.wubo.sql.util.annotations;
 
 
 import java.lang.annotation.*;
@@ -7,6 +7,6 @@ import java.lang.annotation.*;
 @Target({ElementType.TYPE})
 @Documented
 public @interface Table {
-    String name();
+    String value();
     String desc() default "";
 }

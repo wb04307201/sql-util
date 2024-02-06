@@ -1,7 +1,12 @@
 package cn.wubo.sql.util;
 
+import cn.wubo.sql.util.annotations.Column;
+import cn.wubo.sql.util.annotations.Table;
+import cn.wubo.sql.util.enums.ColumnType;
 import cn.wubo.sql.util.exception.ModelSqlUtilsException;
+import cn.wubo.sql.util.test.User;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
@@ -56,9 +61,9 @@ public class ModelSqlUtils {
                 // 如果值是java.sql.Timestamp类型，则格式化为"yyyy-MM-dd HH:mm:ss.SSS"格式
                 if (obj instanceof java.sql.Timestamp)
                     return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(obj);
-                // 如果值是Date类型，则格式化为"yyyy-MM-dd"格式
+                    // 如果值是Date类型，则格式化为"yyyy-MM-dd"格式
                 else if (obj instanceof Date) return new SimpleDateFormat("yyyy-MM-dd").format(obj);
-                // 其他情况下直接返回值
+                    // 其他情况下直接返回值
                 else return obj;
             } else {
                 return null;
@@ -76,6 +81,21 @@ public class ModelSqlUtils {
      * @return 转换后的数据库类型
      */
     private static String getType(Field field) {
+        Annotation[] fieldAnns = field.getAnnotations();
+        Optional<Annotation> fieldAnnOpt = Arrays.stream(fieldAnns).filter(Column.class::isInstance).findAny();
+        if (fieldAnnOpt.isPresent()) {
+            Column column = (Column) fieldAnnOpt.get();
+            if (column.type() == ColumnType.VARCHAR) {
+                if (column.length() != 0) return column.type().getValue() + "(" + column.length() + ")";
+                else return column.type().getValue();
+            } else if (column.type() == ColumnType.NUMBER) {
+                if (column.precision() != 0 && column.scale() != 0)
+                    return column.type().getValue() + "(" + column.precision() + "," + column.scale() + ")";
+                else if (column.precision() != 0) return column.type().getValue() + "(" + column.precision() + ")";
+                else return column.type().getValue();
+            }else return column.type().getValue();
+        }
+
         // 根据字段类型进行数据库类型的转换
         if (field.getType().equals(Integer.class)) {
             return "int";  // 整数类型转换为数据库的整数类型
@@ -86,7 +106,7 @@ public class ModelSqlUtils {
         } else if (field.getType().equals(Double.class)) {
             return "double";  // 浮点数类型转换为数据库的双精度浮点数类型
         } else if (field.getType().equals(BigDecimal.class)) {
-            return "numeric";  // 使用BigDecimal类型的字段转换为数据库的数字类型
+            return "number";  // 使用BigDecimal类型的字段转换为数据库的数字类型
         } else if (field.getType().equals(java.util.Date.class) || field.getType().equals(java.sql.Date.class)) {
             return "date";  // 日期类型转换为数据库的日期类型
         } else if (field.getType().equals(Time.class)) {
@@ -100,7 +120,7 @@ public class ModelSqlUtils {
         } else if (field.getType().equals(Clob.class)) {
             return "clob";  // CLOB类型转换为数据库的CLOB类型
         } else {
-            return "varchar2";  // 默认转换为数据库的VARCHAR2类型
+            return "varchar";  // 默认转换为数据库的VARCHAR类型
         }
     }
 
@@ -274,5 +294,39 @@ public class ModelSqlUtils {
         return "drop table " + tableName;
     }
 
+    public static void main(String[] args) {
+        StringBuilder sb = new StringBuilder();
+        List<String> comments = new ArrayList<>();
+
+        Class<User> clazz = User.class;
+        System.out.println(clazz.getName());
+        Annotation[] tableAnns = clazz.getAnnotations();
+        Optional<Annotation> tableAnnOpt = Arrays.stream(tableAnns).filter(Table.class::isInstance).findAny();
+        String tableName;
+        String tableDesc;
+        if (tableAnnOpt.isPresent()) {
+            Table table = (Table) tableAnnOpt.get();
+            tableName = table.value();
+            tableDesc = table.desc();
+        } else {
+            tableName = clazz.getSimpleName();
+            tableDesc = clazz.getSimpleName();
+        }
+        System.out.println(tableName);
+        System.out.println(tableDesc);
+
+        sb.append("create table ").append(tableName).append(" (");
+
+        List<Field> fields = new ArrayList<>();
+        getFields(clazz, fields);
+
+        fields.forEach(field -> sb.append(field.getName()).append(" ").append(getType(field)).append(","));
+
+
+        comments.add(String.format("comment on table \"%s\" is '%s'", tableName, tableDesc));
+
+        System.out.println(sb);
+        System.out.println(comments);
+    }
 
 }
