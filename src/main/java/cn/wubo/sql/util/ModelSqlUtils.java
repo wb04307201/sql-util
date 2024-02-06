@@ -1,22 +1,15 @@
 package cn.wubo.sql.util;
 
-import cn.wubo.sql.util.annotations.Column;
-import cn.wubo.sql.util.annotations.Table;
-import cn.wubo.sql.util.enums.ColumnType;
+import cn.wubo.sql.util.entity.EntityUtils;
+import cn.wubo.sql.util.entity.TableModel;
+import cn.wubo.sql.util.enums.GenerationType;
+import cn.wubo.sql.util.enums.StatementCondition;
 import cn.wubo.sql.util.exception.ModelSqlUtilsException;
-import cn.wubo.sql.util.test.User;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.math.BigDecimal;
-import java.sql.Blob;
-import java.sql.Clob;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 /**
  * 根据实体类生成sql
@@ -27,200 +20,91 @@ public class ModelSqlUtils {
     }
 
     /**
-     * 反射获取类和父类的字段
-     * 排除合成字段
-     * 排除static final
+     * 根据数据插入SQL语句
      *
-     * @param clazz  类
-     * @param fields Field集合
-     */
-    private static void getFields(Class<?> clazz, List<Field> fields) {
-        if (clazz != null) {
-            // 获取类的字段
-            fields.addAll(Arrays.stream(clazz.getDeclaredFields()).filter(field -> !field.isSynthetic()).filter(field -> !(Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(field.getModifiers()))).collect(Collectors.toList()));
-
-            // 获取父类的字段
-            getFields(clazz.getSuperclass(), fields);
-        }
-    }
-
-
-    /**
-     * 对值的处理
-     *
-     * @param field 字段
-     * @param data  数据
-     * @param <T>   数据类型
-     * @return 处理后的值
-     */
-    private static <T> Object getValue(Field field, T data) {
-        try {
-            field.setAccessible(true);
-            Object obj = field.get(data);
-            if (obj != null) {
-                // 如果值是java.sql.Timestamp类型，则格式化为"yyyy-MM-dd HH:mm:ss.SSS"格式
-                if (obj instanceof java.sql.Timestamp)
-                    return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(obj);
-                    // 如果值是Date类型，则格式化为"yyyy-MM-dd"格式
-                else if (obj instanceof Date) return new SimpleDateFormat("yyyy-MM-dd").format(obj);
-                    // 其他情况下直接返回值
-                else return obj;
-            } else {
-                return null;
-            }
-        } catch (IllegalAccessException e) {
-            throw new ModelSqlUtilsException(e);
-        }
-    }
-
-
-    /**
-     * 转换数据库类型
-     *
-     * @param field 要转换类型的字段
-     * @return 转换后的数据库类型
-     */
-    private static String getType(Field field) {
-        Annotation[] fieldAnns = field.getAnnotations();
-        Optional<Annotation> fieldAnnOpt = Arrays.stream(fieldAnns).filter(Column.class::isInstance).findAny();
-        if (fieldAnnOpt.isPresent()) {
-            Column column = (Column) fieldAnnOpt.get();
-            if (column.type() == ColumnType.VARCHAR) {
-                if (column.length() != 0) return column.type().getValue() + "(" + column.length() + ")";
-                else return column.type().getValue();
-            } else if (column.type() == ColumnType.NUMBER) {
-                if (column.precision() != 0 && column.scale() != 0)
-                    return column.type().getValue() + "(" + column.precision() + "," + column.scale() + ")";
-                else if (column.precision() != 0) return column.type().getValue() + "(" + column.precision() + ")";
-                else return column.type().getValue();
-            }else return column.type().getValue();
-        }
-
-        // 根据字段类型进行数据库类型的转换
-        if (field.getType().equals(Integer.class)) {
-            return "int";  // 整数类型转换为数据库的整数类型
-        } else if (field.getType().equals(Long.class)) {
-            return "bigint";  // 整数类型转换为数据库的大整数类型
-        } else if (field.getType().equals(Float.class)) {
-            return "float";  // 浮点数类型转换为数据库的浮点数类型
-        } else if (field.getType().equals(Double.class)) {
-            return "double";  // 浮点数类型转换为数据库的双精度浮点数类型
-        } else if (field.getType().equals(BigDecimal.class)) {
-            return "number";  // 使用BigDecimal类型的字段转换为数据库的数字类型
-        } else if (field.getType().equals(java.util.Date.class) || field.getType().equals(java.sql.Date.class)) {
-            return "date";  // 日期类型转换为数据库的日期类型
-        } else if (field.getType().equals(Time.class)) {
-            return "time";  // 时间类型转换为数据库的时间类型
-        } else if (field.getType().equals(Timestamp.class) || field.getType().equals(Calendar.class)) {
-            return "timestamp";  // 时间戳类型或日历类型转换为数据库的时间戳类型
-        } else if (field.getType().equals(Boolean.class)) {
-            return "bit";  // 布尔类型转换为数据库的位类型
-        } else if (field.getType().equals(Blob.class)) {
-            return "blob";  // BLOB类型转换为数据库的BLOB类型
-        } else if (field.getType().equals(Clob.class)) {
-            return "clob";  // CLOB类型转换为数据库的CLOB类型
-        } else {
-            return "varchar";  // 默认转换为数据库的VARCHAR类型
-        }
-    }
-
-
-    /**
-     * 生成插入SQL语句
-     *
-     * @param tableName 表名
-     * @param data      数据
-     * @param <T>       实体类
+     * @param data 数据
+     * @param <T>  数据类型
      * @return SQL对象
      */
-    public static <T> SQL<T> insertSql(String tableName, T data) {
-        // 创建SQL对象并设置表名
-        SQL<T> sql = SQL.<T>insert().table(tableName);
+    public static <T> SQL<T> insertSql(T data) {
+        Class<T> clazz = (Class<T>) data.getClass();
+        // 检查表是否存在，如果不存在则添加表信息
+        if (Boolean.FALSE.equals(EntityUtils.check(clazz.getName()))) EntityUtils.putTable(clazz);
 
-        // 获取数据类的字段
-        List<Field> fields = new ArrayList<>();
-        getFields(data.getClass(), fields);
+        // 获取表信息
+        TableModel tableModel = EntityUtils.getTable(clazz.getName());
+        SQL<T> sql = new SQL<T>().insert();
 
         // 遍历字段列表，将非空字段添加到SQL的set语句中
-        fields.stream().forEach(field -> {
-            // 获取字段的值
-            Object valObj = getValue(field, data);
-            if (valObj != null) sql.addSet(field.getName(), valObj);
+        tableModel.getCols().stream().forEach(col -> {
+            if (Boolean.TRUE.equals(col.getKey()) && col.getGenerationType() == GenerationType.UUID) {
+                sql.addSet(col.getColumnName(), UUID.randomUUID().toString());
+            } else {
+                Object valObj = EntityUtils.getValue(col.getField(), data);
+                if (valObj != null) sql.addSet(col.getColumnName(), valObj);
+            }
         });
 
         // 解析SQL语句
         return sql.parse();
     }
 
-
     /**
-     * 根据id更新数据SQL语句
+     * 生成更新SQL语句
      *
-     * @param tableName 表名
-     * @param data      数据
-     * @param <T>       实体类
-     * @return sql
+     * @param data 数据对象
+     * @return SQL对象
      */
-    public static <T> SQL<T> updateByIdSql(String tableName, T data) {
-        // 创建SQL对象
-        SQL<T> sql = SQL.<T>update().table(tableName);
+    public static <T> SQL<T> updateSql(T data) {
+        Class<T> clazz = (Class<T>) data.getClass();
+        // 检查表是否存在，如果不存在则添加表信息
+        if (Boolean.FALSE.equals(EntityUtils.check(clazz.getName()))) EntityUtils.putTable(clazz);
 
-        // 获取所有字段
-        List<Field> fields = new ArrayList<>();
-        getFields(data.getClass(), fields);
+        // 获取表信息
+        TableModel tableModel = EntityUtils.getTable(clazz.getName());
+
+        // 创建SQL对象并设置表名
+        SQL<T> sql = new SQL<T>().update();
 
         // 遍历所有字段，将非id字段添加到set语句中
-        fields.stream().filter(field -> !field.getName().equals("id")).forEach(field -> {
-            Object valObj = getValue(field, data);
-            if (valObj != null) sql.addSet(field.getName(), valObj);
+        tableModel.getCols().stream().filter(col -> !col.getKey()).forEach(col -> {
+            Object valObj = EntityUtils.getValue(col.getField(), data);
+            if (valObj != null) sql.addSet(col.getColumnName(), valObj);
         });
 
         // 获取id字段
-        Field idField = fields.stream().filter(field -> field.getName().equals("id")).findAny().orElseThrow(() -> new ModelSqlUtilsException("id不存在"));
-
-        // 获取id字段的值
-        Object valObj = getValue(idField, data);
-        if (valObj == null) throw new ModelSqlUtilsException("id值不能为空");
+        TableModel.ColumnModel keyCol = tableModel.getCols().stream().filter(TableModel.ColumnModel::getKey).findAny().orElseThrow(() -> new ModelSqlUtilsException("主键未定义"));
 
         // 添加where语句
-        sql.addWhereEQ("id", valObj);
+        sql.addWhereEQ(keyCol.getColumnName(), Objects.requireNonNull(EntityUtils.getValue(keyCol.getField(), data), "主键值不能为空"));
 
         return sql.parse();
     }
 
-
     /**
-     * 根据id删除数据SQL语句
+     * 构造删除SQL语句
      *
-     * @param tableName 表名
-     * @param data      数据
-     * @param <T>       实体类
-     * @return SQL对象
+     * @param data 待删除的数据对象
+     * @return 构造好的SQL语句
      */
-    public static <T> SQL<T> deleteByIdSql(String tableName, T data) {
-        // 创建SQL对象
-        SQL<T> sql = SQL.<T>delete().table(tableName);
+    public static <T> SQL<T> deleteSql(T data) {
+        Class<T> clazz = (Class<T>) data.getClass();
+        // 检查表是否存在，如果不存在则添加表信息
+        if (Boolean.FALSE.equals(EntityUtils.check(clazz.getName()))) EntityUtils.putTable(clazz);
 
-        // 获取数据的字段列表
-        List<Field> fields = new ArrayList<>();
-        getFields(data.getClass(), fields);
+        // 获取表信息
+        TableModel tableModel = EntityUtils.getTable(clazz.getName());
+        SQL<T> sql = new SQL<T>().delete();
 
         // 根据id字段名筛选出id字段
-        Field idField = fields.stream().filter(field -> field.getName().equals("id")).findAny().orElseThrow(() -> new ModelSqlUtilsException("id不存在"));
-
-        // 获取id字段的值
-        Object valObj = getValue(idField, data);
-
-        // 如果id值为空则抛出异常
-        if (valObj == null) throw new ModelSqlUtilsException("id值不能为空");
+        TableModel.ColumnModel keyCol = tableModel.getCols().stream().filter(TableModel.ColumnModel::getKey).findAny().orElseThrow(() -> new ModelSqlUtilsException("主键未定义"));
 
         // 在sql语句中加入where条件，根据id值进行等值比较
-        sql.addWhereEQ("id", valObj);
+        sql.addWhereEQ(keyCol.getColumnName(), Objects.requireNonNull(EntityUtils.getValue(keyCol.getField(), data), "主键值不能为空"));
 
         // 解析并返回SQL
         return sql.parse();
     }
-
 
     /**
      * 生成查询的SQL语句
@@ -231,102 +115,107 @@ public class ModelSqlUtils {
      * @return SQL对象
      */
     public static <T> SQL<T> selectSql(String tableName, T data) {
-        // 创建SQL对象
-        SQL<T> sql = (SQL<T>) SQL.select(data.getClass()).table(tableName);
+        Class<T> clazz = (Class<T>) data.getClass();
+        // 检查表是否存在，如果不存在则添加表信息
+        if (Boolean.FALSE.equals(EntityUtils.check(clazz.getName()))) EntityUtils.putTable(clazz);
 
-        // 获取数据的字段列表
-        List<Field> fields = new ArrayList<>();
-        getFields(data.getClass(), fields);
+        // 获取表信息
+        TableModel tableModel = EntityUtils.getTable(clazz.getName());
+        SQL<T> sql = new SQL<T>().select();
 
         // 遍历字段列表，根据字段值生成where条件
-        fields.forEach(field -> {
-            Object valObj = getValue(field, data);
-            if (valObj != null) sql.addWhereEQ(field.getName(), valObj);
+        tableModel.getCols().forEach(col -> {
+            Object valObj = EntityUtils.getValue(col.getField(), data);
+            if (valObj != null) {
+                if (col.getStatementCondition() == StatementCondition.EQ) sql.addWhereEQ(col.getColumnName(), valObj);
+                else if (col.getStatementCondition() == StatementCondition.UEQ)
+                    sql.addWhereUEQ(col.getColumnName(), valObj);
+                else if (col.getStatementCondition() == StatementCondition.LIKE)
+                    sql.addWhereLIKE(col.getColumnName(), valObj);
+                else if (col.getStatementCondition() == StatementCondition.LLIKE)
+                    sql.addWhereLLIKE(col.getColumnName(), valObj);
+                else if (col.getStatementCondition() == StatementCondition.RLIKE)
+                    sql.addWhereRLIKE(col.getColumnName(), valObj);
+                else if (col.getStatementCondition() == StatementCondition.GT)
+                    sql.addWhereGT(col.getColumnName(), valObj);
+                else if (col.getStatementCondition() == StatementCondition.LT)
+                    sql.addWhereLT(col.getColumnName(), valObj);
+                else if (col.getStatementCondition() == StatementCondition.GTEQ)
+                    sql.addWhereGTEQ(col.getColumnName(), valObj);
+                else if (col.getStatementCondition() == StatementCondition.LTEQ)
+                    sql.addWhereLTEQ(col.getColumnName(), valObj);
+            }
         });
 
         // 解析并返回SQL
         return sql.parse();
     }
 
-
     /**
-     * 根据给定的表名和实体class，生成创建表的SQL语句
+     * 根据给定的实体类生成创建表的SQL语句
      *
-     * @param tableName 表名
-     * @param clazz     实体class
-     * @param <T>       实体类
-     * @return 创建表的SQL语句
+     * @param clazz 实体类的Class对象
+     * @return 包含创建表的SQL语句的List
      */
-    public static <T> String createSql(String tableName, Class<T> clazz) {
-        // 获取实体类的所有字段
-        List<Field> fields = new ArrayList<>();
-        getFields(clazz, fields);
-
-        // 构建SQL语句
+    public static <T> List<String> createSql(Class<T> clazz) {
+        // 初始化StringBuilder和List
         StringBuilder sb = new StringBuilder();
-        sb.append("create table ").append(tableName).append(" (");
-        fields.forEach(field -> sb.append(field.getName()).append(" ").append(getType(field)).append(","));
+        List<String> sqls = new ArrayList<>();
+
+        // 检查表是否存在，如果不存在则添加表信息
+        if (Boolean.FALSE.equals(EntityUtils.check(clazz.getName()))) EntityUtils.putTable(clazz);
+
+        // 获取表信息
+        TableModel tableModel = EntityUtils.getTable(clazz.getName());
+
+        // 添加表注释
+        sqls.add(String.format("comment on table %s is '%s'", tableModel.getName(), tableModel.getDesc()));
+
+        // 构建创建表的SQL语句
+        sb.append("create table ").append(tableModel.getName()).append(" (");
+        tableModel.getCols().forEach(col -> {
+            sb.append(col.getFieldName()).append(" ").append(col.getDefinition()).append(",");
+            // 添加列注释
+            sqls.add(String.format("comment on column %s.%s is '%s'", tableModel.getName(), col.getColumnName(), col.getDesc()));
+        });
+
+        // 删除最后一个逗号并添加表结束符号
         int length = sb.length();
         sb.delete(length - 1, length).append(")");
-        return sb.toString();
-    }
 
+        // 添加创建表的SQL语句到List中
+        sqls.add(0, sb.toString());
 
-    /**
-     * 根据给定的表名和数据，生成对应的 SQL 语句。
-     *
-     * @param tableName 数据表的名称
-     * @param data      数据对象
-     * @return 生成的 SQL 语句
-     */
-    public static <T> String createSql(String tableName, T data) {
-        // 调用 createSql 方法，传入表名和数据对象的 class
-        return createSql(tableName, data.getClass());
+        // 返回创建表的SQL语句
+        return sqls;
     }
 
     /**
-     * 根据给定的表名，生成删除表的SQL语句
+     * 根据传入的数据类型，生成对应的SQL语句
      *
-     * @param tableName 要删除的表名
-     * @return 返回删除表的SQL语句
+     * @param data 传入的数据对象
+     * @return 生成的SQL语句列表
      */
-    public static String dropSql(String tableName) {
-        return "drop table " + tableName;
+    public static <T> List<String> createSql(T data) {
+        return createSql(data.getClass());
     }
 
-    public static void main(String[] args) {
-        StringBuilder sb = new StringBuilder();
-        List<String> comments = new ArrayList<>();
-
-        Class<User> clazz = User.class;
-        System.out.println(clazz.getName());
-        Annotation[] tableAnns = clazz.getAnnotations();
-        Optional<Annotation> tableAnnOpt = Arrays.stream(tableAnns).filter(Table.class::isInstance).findAny();
-        String tableName;
-        String tableDesc;
-        if (tableAnnOpt.isPresent()) {
-            Table table = (Table) tableAnnOpt.get();
-            tableName = table.value();
-            tableDesc = table.desc();
-        } else {
-            tableName = clazz.getSimpleName();
-            tableDesc = clazz.getSimpleName();
+    /**
+     * 生成删除表的SQL语句
+     *
+     * @param clazz 数据表对应的实体类
+     * @return 删除表的SQL语句
+     */
+    public static <T> String dropSql(Class<T> clazz) {
+        // 检查数据表是否存在
+        if (Boolean.FALSE.equals(EntityUtils.check(clazz.getName()))) {
+            // 将数据表添加到实体类映射表中
+            EntityUtils.putTable(clazz);
         }
-        System.out.println(tableName);
-        System.out.println(tableDesc);
-
-        sb.append("create table ").append(tableName).append(" (");
-
-        List<Field> fields = new ArrayList<>();
-        getFields(clazz, fields);
-
-        fields.forEach(field -> sb.append(field.getName()).append(" ").append(getType(field)).append(","));
-
-
-        comments.add(String.format("comment on table \"%s\" is '%s'", tableName, tableDesc));
-
-        System.out.println(sb);
-        System.out.println(comments);
+        // 获取数据表的模型对象
+        TableModel tableModel = EntityUtils.getTable(clazz.getName());
+        // 返回删除表的SQL语句
+        return "DROP TABLE " + tableModel.getName();
     }
 
 }

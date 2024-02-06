@@ -1,5 +1,6 @@
 package cn.wubo.sql.util;
 
+import cn.wubo.sql.util.entity.EntityUtils;
 import cn.wubo.sql.util.enums.StatementCondition;
 import cn.wubo.sql.util.enums.StatementType;
 import cn.wubo.sql.util.exception.SQLRuntimeException;
@@ -11,14 +12,17 @@ import lombok.Data;
 import lombok.Getter;
 
 import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class SQL<T> {
-    private StatementType statementType;
+    @Getter
+    private Class<T> clazz;
     @Getter
     private String table;
+    private StatementType statementType;
     private List<String> columns = new ArrayList<>();
     private List<Set> sets = new ArrayList<>();
     private List<Where> wheres = new ArrayList<>();
@@ -29,105 +33,61 @@ public class SQL<T> {
     private String parse;
     @Getter
     private Map<Integer, Object> params = new HashMap<>();
-    @Getter
-    private Class<T> clazz;
 
-    public SQL(StatementType statementType) {
-        this.statementType = statementType;
+    public SQL() {
+        Type superClass = getClass().getGenericSuperclass();
+        Type type = ((ParameterizedType) superClass).getActualTypeArguments()[0];
+        this.clazz = (Class<T>) ((ParameterizedType) type).getRawType();
+        // 检查表是否存在，如果不存在则添加表信息
+        if (Boolean.FALSE.equals(EntityUtils.check(this.clazz.getName()))) EntityUtils.putTable(clazz);
+        // 获取表信息
+        this.table = EntityUtils.getTable(this.clazz.getName()).getName();
     }
 
-    public SQL(StatementType statementType, List<String> columns) {
-        this.statementType = statementType;
-        this.columns = columns;
-    }
-
-    public SQL(StatementType statementType, List<String> columns, Class<T> clazz) {
-        this.statementType = statementType;
-        this.columns = columns;
-        this.clazz = clazz;
-    }
-
-    public SQL(String table, DbType dbType) {
+    public SQL(String table) {
         this.table = table;
-        this.dbType = dbType;
     }
 
     /**
-     * 构造一个SELECT语句
+     * 设置SQL语句类型为查询（SELECT）。
      *
-     * @param columns 要查询的列
-     * @return SQL对象
+     * @param columns 查询的列名
+     * @return SQL对象本身
      */
-    public static <T> SQL<T> select(String... columns) {
-        return new SQL<>(StatementType.SELECT, Arrays.asList(columns));
+    public SQL<T> select(String... columns) {
+        this.statementType = StatementType.SELECT;
+        this.columns = Arrays.asList(columns);
+        return this;
     }
 
     /**
-     * 构造一个SELECT语句
+     * 设置SQL语句类型为插入（INSERT）。
      *
-     * @param clazz 要查询的实体类
-     * @param columns 要查询的列
-     * @return SQL对象
+     * @return SQL对象本身
      */
-    public static <T> SQL<T> select(Class<T> clazz, String... columns) {
-        return new SQL<>(StatementType.SELECT, Arrays.asList(columns), clazz);
+    public SQL<T> insert() {
+        this.statementType = StatementType.INSERT;
+        return this;
     }
 
+
     /**
-     * 构造一个SELECT语句
+     * 设置SQL语句类型为更新（UPDATE）。
      *
-     * @param typeReference 要查询的实体类的类型引用
-     * @param columns 要查询的列
-     * @return SQL对象
+     * @return SQL对象本身
      */
-    public static <T> SQL<T> select(TypeReference<T> typeReference, String... columns) {
-        return new SQL<>(StatementType.SELECT, Arrays.asList(columns), (Class<T>) ((ParameterizedType) typeReference.type).getRawType());
+    public SQL<T> update() {
+        this.statementType = StatementType.UPDATE;
+        return this;
     }
 
     /**
-     * 构造一个用于插入数据的SQL对象
-     * @param <T> 数据类型
-     * @return SQL对象
-     */
-    public static <T> SQL<T> insert() {
-        return new SQL<>(StatementType.INSERT);
-    }
-
-
-    /**
-     * 构造一个更新语句的SQL对象
-     * @param <T> 泛型参数
-     * @return SQL对象
-     */
-    public static <T> SQL<T> update() {
-        return new SQL<>(StatementType.UPDATE);
-    }
-
-
-    /**
-     * 构造一个删除语句的SQL对象
-     * @param <T> 泛型参数
-     * @return SQL对象
-     */
-    public static <T> SQL<T> delete() {
-        return new SQL<>(StatementType.DELETE);
-    }
-
-
-    /**
-     * 构造一个SQL对象，用于检查指定表是否存在
+     * 设置SQL语句类型为删除（DELETE）。
      *
-     * @param table 表名
-     * @param dbType 数据库类型
-     * @return SQL对象
+     * @return SQL对象本身
      */
-    public static <T> SQL<T> tableExists(String table, DbType dbType) {
-        return new SQL<>(table, dbType);
-    }
-
-
-    public SQL<T> table(String table) {
-        this.table = table;
+    public SQL<T> delete() {
+        this.statementType = StatementType.DELETE;
         return this;
     }
 
@@ -139,10 +99,11 @@ public class SQL<T> {
      * @return SQL对象
      */
     public SQL<T> addSet(String field, Object value) {
+        // 添加一个设置对象到集合中
         sets.add(new Set(field, value));
+        // 返回当前SQL对象
         return this;
     }
-
 
     /**
      * 添加一个等值条件到SQL对象中
@@ -155,7 +116,6 @@ public class SQL<T> {
         wheres.add(new Where(field, StatementCondition.EQ, value));
         return this;
     }
-
 
     /**
      * 添加一个等值不等于的条件到WHERE子句中。
@@ -183,6 +143,7 @@ public class SQL<T> {
 
     /**
      * 添加一个以"LIKE"条件的WHERE子句
+     *
      * @param field 字段名
      * @param value 值
      * @return SQL对象
@@ -195,6 +156,7 @@ public class SQL<T> {
 
     /**
      * 添加一个以"LIKE"条件的WHERE子句
+     *
      * @param field 字段名
      * @param value 值
      * @return SQL对象
@@ -207,6 +169,7 @@ public class SQL<T> {
 
     /**
      * 添加一个RLIKE条件到WHERE子句中
+     *
      * @param field 字段名
      * @param value 匹配的值
      * @return SQL对象
@@ -219,6 +182,7 @@ public class SQL<T> {
 
     /**
      * 添加一个GT条件到WHERE子句中
+     *
      * @param field 字段名
      * @param value 大于的值
      * @return SQL对象
@@ -231,6 +195,7 @@ public class SQL<T> {
 
     /**
      * 添加一个LT条件到WHERE子句中
+     *
      * @param field 字段名
      * @param value 小于的值
      * @return SQL对象
@@ -243,6 +208,7 @@ public class SQL<T> {
 
     /**
      * 添加一个GTEQ条件到WHERE子句中
+     *
      * @param field 字段名
      * @param value 大于等于的值
      * @return SQL对象
@@ -255,6 +221,7 @@ public class SQL<T> {
 
     /**
      * 添加一个LTEQ条件到WHERE子句中
+     *
      * @param field 字段名
      * @param value 小于等于的值
      * @return SQL对象
@@ -267,6 +234,7 @@ public class SQL<T> {
 
     /**
      * 添加一个BETWEEN条件到WHERE子句中
+     *
      * @param field 字段名
      * @param value 值
      * @return SQL对象
@@ -279,6 +247,7 @@ public class SQL<T> {
 
     /**
      * 添加一个NOT BETWEEN条件到WHERE子句中
+     *
      * @param field 字段名
      * @param value 值
      * @return SQL对象
@@ -291,6 +260,7 @@ public class SQL<T> {
 
     /**
      * 添加一个IN条件到WHERE子句中
+     *
      * @param field 字段名
      * @param value 值
      * @return SQL对象
@@ -303,6 +273,7 @@ public class SQL<T> {
 
     /**
      * 添加一个NOT IN条件到WHERE子句中
+     *
      * @param field 字段名
      * @param value 值
      * @return SQL对象
@@ -315,6 +286,7 @@ public class SQL<T> {
 
     /**
      * 添加一个字段为NULL的WHERE条件
+     *
      * @param field 字段名
      * @return SQL对象
      */
@@ -325,6 +297,7 @@ public class SQL<T> {
 
     /**
      * 添加一个WHERE NOT NULL条件
+     *
      * @param field 字段名
      * @return SQL对象
      */
@@ -379,6 +352,7 @@ public class SQL<T> {
 
     /**
      * 构建SELECT语句
+     *
      * @param sb SQL语句的构建器
      */
     private void selectSQL(StringBuilder sb) {
@@ -386,7 +360,7 @@ public class SQL<T> {
         sb.append(statementType.getValue());
         // 如果columns不为空，则遍历columns列表，将每个字段名添加到sb中，并在每个字段名后面添加逗号
         if (!columns.isEmpty()) columns.forEach(str -> sb.append(str).append(","));
-        // 如果columns为空，则添加"*"和逗号
+            // 如果columns为空，则添加"*"和逗号
         else sb.append("*,");
         // 删除最后一个逗号，并添加FROM和table
         sb.delete(sb.length() - 1, sb.length()).append(" FROM ").append(table);
@@ -443,6 +417,7 @@ public class SQL<T> {
         if (!whereSQL.isEmpty()) sb.append(" WHERE ").append(whereSQL);
     }
 
+
     /**
      * Generates the SQL INSERT statement based on the given sets.
      *
@@ -461,33 +436,54 @@ public class SQL<T> {
      * @param sb the StringBuilder to append the generated SQL UPDATE statement to
      */
     private void updateSQL(StringBuilder sb) {
-        sb.append(statementType.getValue()).append(table).append(" SET ").append(sets.stream().map(set -> {
-            params.put(atomicInteger.incrementAndGet(), set.getValue());
-            return set.getField() + " = ?";
-        }).collect(Collectors.joining(",")));
-        whereSQL(sb);
+        sb.append(statementType.getValue()).append(table).append(" SET "); // Append the UPDATE statement with the table name
+        sb.append(sets.stream().map(set -> { // Iterate over each set
+            params.put(atomicInteger.incrementAndGet(), set.getValue()); // Add the set value to the params map with a unique key
+            return set.getField() + " = ?"; // Append the set field with a placeholder for the value
+        }).collect(Collectors.joining(","))); // Join the set fields with commas
+        whereSQL(sb); // Append the WHERE clause to the SQL statement
     }
 
     /**
      * 构建删除SQL语句
+     *
      * @param sb SQL语句构建器
      */
     private void deleteSQL(StringBuilder sb) {
+        // 添加删除语句类型和表名
         sb.append(statementType.getValue()).append(table);
+
+        // 添加WHERE子句
         whereSQL(sb);
     }
 
+    /**
+     * 分页查询
+     * @param offset 分页偏移量
+     * @param count 每页显示数量
+     * @return SQL对象
+     */
     public SQL<T> page(int offset, int count) {
+        // 检查数据库类型是否已设置
         if (dbType == null)
-            throw new SQLRuntimeException("before invoke page method,should invoke setDbtype to set dbtype!");
+            throw new SQLRuntimeException("设置分页前，请使用setDbtype设置数据库类型!");
+
+        // 使用PagerUtils对查询语句进行分页处理
         this.parse = PagerUtils.limit(parse, dbType, offset, count);
+
         return this;
     }
 
-    public SQL<T> setDbtype(DbType dbType) {
+    /**
+     * 设置数据库方言
+     * @param dbType 数据库方言
+     * @return SQL对象
+     */
+    public SQL<T> dialect(DbType dbType) {
         this.dbType = dbType;
         if (parse != null && parse.length() > 0)
             parse = SQLUtils.toSQLString(SQLUtils.parseStatements(parse, dbType), dbType);
         return this;
     }
+
 }

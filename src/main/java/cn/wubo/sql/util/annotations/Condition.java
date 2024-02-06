@@ -8,6 +8,5 @@ import java.lang.annotation.*;
 @Target({ElementType.FIELD})
 @Documented
 public @interface Condition {
-
     StatementCondition value() default StatementCondition.EQ;
 }

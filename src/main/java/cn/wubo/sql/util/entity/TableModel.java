@@ -1,6 +1,8 @@
 package cn.wubo.sql.util.entity;
 
 import cn.wubo.sql.util.annotations.Column;
+import cn.wubo.sql.util.annotations.Condition;
+import cn.wubo.sql.util.annotations.Key;
 import cn.wubo.sql.util.enums.ColumnType;
 import cn.wubo.sql.util.enums.GenerationType;
 import cn.wubo.sql.util.enums.StatementCondition;
@@ -23,6 +25,8 @@ public class TableModel {
     private List<ColumnModel> cols = new ArrayList<>();
 
     public TableModel(String name, String desc) {
+        this.name = name;
+        this.desc = desc;
     }
 
     public TableModel addColumns(List<ColumnModel> cols) {
@@ -40,32 +44,54 @@ public class TableModel {
         private Integer precision;
         private Integer scale;
 
-        private Boolean id;
+        private String definition;
+
+        private Boolean key = false;
         private GenerationType generationType;
 
         private StatementCondition statementCondition;
 
+        private Field field;
+
         public ColumnModel(Field field) {
             this.fieldName = field.getName();
+            this.field = field;
 
             Annotation[] fieldAnns = field.getAnnotations();
-            Optional<Annotation> fieldAnnOpt = Arrays.stream(fieldAnns).filter(cn.wubo.sql.util.annotations.Column.class::isInstance).findAny();
-            if (fieldAnnOpt.isPresent()) {
-                Column column = (Column) fieldAnnOpt.get();
+            Optional<Annotation> columnAnnOpt = Arrays.stream(fieldAnns).filter(Column.class::isInstance).findAny();
+            if (columnAnnOpt.isPresent()) {
+                Column column = (Column) columnAnnOpt.get();
                 this.columnName = column.value();
                 this.desc = column.desc();
                 this.type = column.type().getValue();
+                this.definition = this.type;
                 if (column.type() == ColumnType.VARCHAR) {
                     this.length = column.length();
+                    if (this.length != 0) this.definition = this.type + "(" + this.length + ")";
                 } else if (column.type() == ColumnType.NUMBER) {
                     this.precision = column.precision();
                     this.scale = column.scale();
+                    if (this.precision != 0 && this.scale != 0)
+                        this.definition = this.type + "(" + this.precision + "," + this.scale + ")";
+                    else if (this.precision != 0) this.definition = this.type + "(" + this.precision + ")";
                 }
             } else {
                 this.columnName = field.getName();
                 this.desc = field.getName();
                 this.type = fieldTypeToDbType(field);
+                this.definition = this.type;
             }
+
+            Arrays.stream(fieldAnns).filter(Key.class::isInstance).findAny().ifPresent(ann -> {
+                Key key = (Key) ann;
+                this.key = true;
+                this.generationType = key.value();
+            });
+
+            Arrays.stream(fieldAnns).filter(Condition.class::isInstance).findAny().ifPresent(ann -> {
+                Condition condition = (Condition) ann;
+                this.statementCondition = condition.value();
+            });
         }
 
         /**

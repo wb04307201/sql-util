@@ -3,7 +3,6 @@ package cn.wubo.sql.util;
 import cn.wubo.sql.util.entity.DataTableEntity;
 import cn.wubo.sql.util.entity.MethodEntity;
 import cn.wubo.sql.util.exception.ExecuteSqlUtilsException;
-import com.alibaba.druid.DbType;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.InvocationTargetException;
@@ -393,18 +392,14 @@ public class ExecuteSqlUtils {
      */
     public static <T> Boolean isTableExists(Connection connection, SQL<T> sql) {
         String tableName = sql.getTable();
-        DbType dbType = sql.getDbType();
-
-        // 将表名转换为大写（H2、Oracle、PostgreSQL、DB2、DM数据库类型）
-        if ((DbType.h2.equals(dbType) || DbType.oracle.equals(dbType) || DbType.postgresql.equals(dbType) || DbType.db2.equals(dbType) || DbType.dm.equals(dbType)))
-            tableName = tableName.toUpperCase();
-
-            // 将表名转换为小写（其他数据库类型）
-        else tableName = tableName.toLowerCase();
-
-        // 调用isTableExists方法判断表是否存在
-        return isTableExists(connection, null, null, tableName, new String[]{"TABLE"});
+        try {
+            String driverName = connection.getMetaData().getDriverName();
+            if ("H2 JDBC Driver".equals(driverName)) tableName = tableName.toUpperCase();
+            else tableName = tableName.toLowerCase();
+            return isTableExists(connection, null, null, tableName, new String[]{"TABLE"});
+        } catch (SQLException e) {
+            throw new ExecuteSqlUtilsException(e);
+        }
     }
-
 
 }
