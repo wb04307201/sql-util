@@ -1,22 +1,23 @@
 package cn.wubo.sql.util;
 
+import cn.wubo.sql.util.cache.MemoryCache;
+
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 public class TypeReference<T> {
-    private static ConcurrentMap<Type, Type> classTypeCache = new ConcurrentHashMap<>(16, 0.75f, 1);
-    public final Type type;
+    public final Class<T> clazz;
 
     protected TypeReference() {
         Type superClass = getClass().getGenericSuperclass();
         Type tempType = ((ParameterizedType) superClass).getActualTypeArguments()[0];
-        Type cachedType = classTypeCache.get(tempType);
-        if (cachedType == null) {
-            classTypeCache.putIfAbsent(tempType, tempType);
-            cachedType = classTypeCache.get(tempType);
+        Class<T> tempClazz = (Class<T>) MemoryCache.getClass(tempType);
+        if (tempClazz == null) {
+            if (tempType.toString().startsWith("class")) tempClazz = (Class<T>) tempType;
+            else tempClazz = (Class<T>) ((ParameterizedType) tempType).getRawType();
+            MemoryCache.putClass(tempType, tempClazz);
+            tempClazz = (Class<T>) MemoryCache.getClass(tempType);
         }
-        this.type = cachedType;
+        this.clazz = tempClazz;
     }
 }

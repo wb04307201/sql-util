@@ -1,6 +1,7 @@
 package cn.wubo.sql.util;
 
 import cn.wubo.sql.util.exception.ConnectionPoolException;
+import cn.wubo.sql.util.utils.StringUtils;
 import com.alibaba.druid.pool.DruidDataSource;
 import lombok.extern.slf4j.Slf4j;
 
@@ -8,9 +9,11 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import static com.alibaba.druid.pool.DruidAbstractDataSource.*;
 
@@ -19,14 +22,12 @@ import static com.alibaba.druid.pool.DruidAbstractDataSource.*;
  */
 @Slf4j
 public class MutilConnectionPool {
-
     private static Integer initialSize = DEFAULT_INITIAL_SIZE;
     private static Integer maxActive = DEFAULT_MAX_ACTIVE_SIZE;
     private static Integer minIdle = DEFAULT_MIN_IDLE;
     private static Integer maxWait = DEFAULT_MAX_WAIT;
     private static Integer connectionErrorRetryAttempts = 1;
     private static Boolean breakAfterAcquireFailure = Boolean.FALSE;
-
 
     /**
      * 设置默认的初始大小
@@ -37,7 +38,6 @@ public class MutilConnectionPool {
         MutilConnectionPool.initialSize = initialSize;
     }
 
-
     /**
      * 设置默认的最大连接数
      *
@@ -46,7 +46,6 @@ public class MutilConnectionPool {
     public static void setDefaultMaxActive(Integer maxActive) {
         MutilConnectionPool.maxActive = maxActive;
     }
-
 
     /**
      * 设置默认的最小空闲连接数
@@ -57,7 +56,6 @@ public class MutilConnectionPool {
         MutilConnectionPool.minIdle = minIdle;
     }
 
-
     /**
      * 设置默认的最大等待时间
      *
@@ -66,7 +64,6 @@ public class MutilConnectionPool {
     public static void setDefaultMaxWait(Integer maxWait) {
         MutilConnectionPool.maxWait = maxWait;
     }
-
 
     /**
      * 设置默认的连接错误重试次数
@@ -77,7 +74,6 @@ public class MutilConnectionPool {
         MutilConnectionPool.connectionErrorRetryAttempts = connectionErrorRetryAttempts;
     }
 
-
     /**
      * 设置获取连接失败后是否中断连接池的使用
      *
@@ -86,7 +82,6 @@ public class MutilConnectionPool {
     public static void setDefaultBreakAfterAcquireFailure(Boolean breakAfterAcquireFailure) {
         MutilConnectionPool.breakAfterAcquireFailure = breakAfterAcquireFailure;
     }
-
 
     private MutilConnectionPool() {
     }
@@ -106,7 +101,6 @@ public class MutilConnectionPool {
         return poolMap.containsKey(key);
     }
 
-
     /**
      * 初始化数据源
      *
@@ -119,12 +113,12 @@ public class MutilConnectionPool {
         // 参数有效性检查
         StringUtils.isEmpty("key", key);
         // 参数有效性检查
-        StringUtils.isEmpty("url, username, and password", url, username, password);
+        StringUtils.isEmpty("url, username", url, username);
         // 创建DruidDataSource对象
         DruidDataSource druidDataSource = new DruidDataSource();
         druidDataSource.setUrl(url); // 设置数据库URL
         druidDataSource.setUsername(username); // 设置用户名
-        druidDataSource.setPassword(password); // 设置密码
+        druidDataSource.setPassword(Objects.requireNonNull(password, "参数password不能为空！")); // 设置密码
         druidDataSource.setInitialSize(initialSize);
         druidDataSource.setMaxActive(maxActive);
         druidDataSource.setMinIdle(minIdle);
@@ -134,7 +128,6 @@ public class MutilConnectionPool {
         // 将DruidDataSource对象存入map中
         poolMap.putIfAbsent(key, druidDataSource);
     }
-
 
     /**
      * 初始化连接池
@@ -148,7 +141,6 @@ public class MutilConnectionPool {
         // 将数据源存入map中
         poolMap.putIfAbsent(key, (DruidDataSource) datasource);
     }
-
 
     /**
      * 获取连接
@@ -175,7 +167,6 @@ public class MutilConnectionPool {
         }
     }
 
-
     /**
      * 根据给定的键移除连接池中的连接
      *
@@ -191,7 +182,6 @@ public class MutilConnectionPool {
         }
     }
 
-
     /**
      * 清空连接池中的所有连接
      */
@@ -204,7 +194,6 @@ public class MutilConnectionPool {
         // 清空连接池
         poolMap.clear();
     }
-
 
     /**
      * 执行指定的BiFunction函数在一个新的数据库连接上
@@ -227,4 +216,22 @@ public class MutilConnectionPool {
         }
     }
 
+    /**
+     * 在数据库连接上执行Function函数
+     *
+     * @param key      数据库连接的key
+     * @param function 数据库连接和返回值类型的Function函数
+     * @param <R>      返回值类型
+     * @return 执行结果
+     * @throws ConnectionPoolException 获取数据库连接失败时抛出的异常
+     */
+    public static <R> R run(String key, Function<Connection, R> function) {
+        try (Connection connection = getConnection(key)) {
+            // 在数据库连接上执行Function函数
+            return function.apply(connection);
+        } catch (SQLException e) {
+            // 如果获取数据库连接失败，则抛出ConnectionPoolException异常
+            throw new ConnectionPoolException(e);
+        }
+    }
 }

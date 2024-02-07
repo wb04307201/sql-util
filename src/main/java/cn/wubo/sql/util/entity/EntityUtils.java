@@ -1,14 +1,16 @@
 package cn.wubo.sql.util.entity;
 
 import cn.wubo.sql.util.annotations.Table;
-import cn.wubo.sql.util.exception.ModelSqlUtilsException;
+import cn.wubo.sql.util.cache.MemoryCache;
+import cn.wubo.sql.util.exception.ModelSqlException;
+import cn.wubo.sql.util.exception.TableModelException;
+import cn.wubo.sql.util.utils.MapUtils;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class EntityUtils {
@@ -16,30 +18,26 @@ public class EntityUtils {
     private EntityUtils() {
     }
 
-    private static Map<String, TableModel> tableMap = new ConcurrentHashMap<>();
-
-    public static synchronized Boolean check(String className) {
-        return tableMap.containsKey(className);
-    }
-
-    public static synchronized TableModel getTable(String className) {
-        return tableMap.get(className);
-    }
-
-    public static synchronized TableModel putTable(Class<?> clazz) {
-        Annotation[] tableAnns = clazz.getAnnotations();
-        Optional<Annotation> tableAnnOpt = Arrays.stream(tableAnns).filter(Table.class::isInstance).findAny();
-        String tableName;
-        String tableDesc;
-        if (tableAnnOpt.isPresent()) {
-            Table table = (Table) tableAnnOpt.get();
-            tableName = table.value();
-            tableDesc = table.desc();
-        } else {
-            tableName = clazz.getSimpleName();
-            tableDesc = clazz.getSimpleName();
+    public static synchronized TableModel getTable(Class<?> clazz) {
+        if (Boolean.TRUE.equals(MapUtils.isMap(clazz))) throw new TableModelException("不支持Map类型！");
+        TableModel tableModel = MemoryCache.getTableModel(clazz);
+        if (tableModel == null) {
+            Annotation[] tableAnns = clazz.getAnnotations();
+            Optional<Annotation> tableAnnOpt = Arrays.stream(tableAnns).filter(Table.class::isInstance).findAny();
+            String tableName;
+            String tableDesc;
+            if (tableAnnOpt.isPresent()) {
+                Table table = (Table) tableAnnOpt.get();
+                tableName = table.value();
+                tableDesc = table.desc();
+            } else {
+                tableName = clazz.getSimpleName();
+                tableDesc = clazz.getSimpleName();
+            }
+            MemoryCache.putTableModel(clazz, new TableModel(tableName, tableDesc).addColumns(transToColumns(clazz)));
+            tableModel = MemoryCache.getTableModel(clazz);
         }
-        return tableMap.put(clazz.getName(), new TableModel(tableName, tableDesc).addColumns(transToColumns(clazz)));
+        return tableModel;
     }
 
     private static List<TableModel.ColumnModel> transToColumns(Class<?> clazz) {
@@ -79,7 +77,7 @@ public class EntityUtils {
                 return null;
             }
         } catch (IllegalAccessException e) {
-            throw new ModelSqlUtilsException(e);
+            throw new ModelSqlException(e);
         }
     }
 }

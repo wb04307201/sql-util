@@ -1,51 +1,56 @@
 package cn.wubo.sql.util;
 
+import cn.wubo.sql.util.cache.MemoryCache;
 import cn.wubo.sql.util.entity.EntityUtils;
+import cn.wubo.sql.util.entity.TableModel;
 import cn.wubo.sql.util.enums.StatementCondition;
 import cn.wubo.sql.util.enums.StatementType;
 import cn.wubo.sql.util.exception.SQLRuntimeException;
+import cn.wubo.sql.util.utils.FunctionUtils;
+import cn.wubo.sql.util.utils.MapUtils;
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.PagerUtils;
 import com.alibaba.druid.sql.SQLUtils;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.Getter;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.sql.Connection;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class SQL<T> {
-    @Getter
     private Class<T> clazz;
-    @Getter
-    private String table;
+    private Integer offset;
+    private Integer count;
     private StatementType statementType;
     private List<String> columns = new ArrayList<>();
     private List<Set> sets = new ArrayList<>();
     private List<Where> wheres = new ArrayList<>();
     private AtomicInteger atomicInteger;
-    @Getter
     private DbType dbType;
-    @Getter
-    private String parse;
-    @Getter
+    private List<String> sqls;
     private Map<Integer, Object> params = new HashMap<>();
 
     public SQL() {
-        Type superClass = getClass().getGenericSuperclass();
-        Type type = ((ParameterizedType) superClass).getActualTypeArguments()[0];
-        this.clazz = (Class<T>) ((ParameterizedType) type).getRawType();
-        // 检查表是否存在，如果不存在则添加表信息
-        if (Boolean.FALSE.equals(EntityUtils.check(this.clazz.getName()))) EntityUtils.putTable(clazz);
-        // 获取表信息
-        this.table = EntityUtils.getTable(this.clazz.getName()).getName();
-    }
-
-    public SQL(String table) {
-        this.table = table;
+        Type superClass = this.getClass().getGenericSuperclass();
+        try {
+            ParameterizedType parameterizedType = (ParameterizedType) superClass;
+            Type tempType = parameterizedType.getActualTypeArguments()[0];
+            Class<T> tempClazz = (Class<T>) MemoryCache.getClass(tempType);
+            if (tempClazz == null) {
+                if (tempType.toString().startsWith("class")) tempClazz = (Class<T>) tempType;
+                else tempClazz = (Class<T>) ((ParameterizedType) tempType).getRawType();
+                if (Boolean.TRUE.equals(MapUtils.isMap(tempClazz))) throw new SQLRuntimeException("SQL不支持Map!");
+                MemoryCache.putClass(tempType, tempClazz);
+                tempClazz = (Class<T>) MemoryCache.getClass(tempType);
+            }
+            this.clazz = tempClazz;
+        } catch (Exception e) {
+            throw new SQLRuntimeException("请使用new SQL<T>(){}方式声明！");
+        }
     }
 
     /**
@@ -57,8 +62,23 @@ public class SQL<T> {
     public SQL<T> select(String... columns) {
         this.statementType = StatementType.SELECT;
         this.columns = Arrays.asList(columns);
+        this.sets = new ArrayList<>();
+        this.wheres = new ArrayList<>();
+        this.sqls = new ArrayList<>();
+        this.offset = null;
+        this.count = null;
         return this;
     }
+
+    /**
+     * 执行查询操作
+     *
+     * @return 返回SQL对象
+     */
+    public SQL<T> select() {
+        return select("*");
+    }
+
 
     /**
      * 设置SQL语句类型为插入（INSERT）。
@@ -67,6 +87,11 @@ public class SQL<T> {
      */
     public SQL<T> insert() {
         this.statementType = StatementType.INSERT;
+        this.sets = new ArrayList<>();
+        this.wheres = new ArrayList<>();
+        this.sqls = new ArrayList<>();
+        this.offset = null;
+        this.count = null;
         return this;
     }
 
@@ -78,6 +103,11 @@ public class SQL<T> {
      */
     public SQL<T> update() {
         this.statementType = StatementType.UPDATE;
+        this.sets = new ArrayList<>();
+        this.wheres = new ArrayList<>();
+        this.sqls = new ArrayList<>();
+        this.offset = null;
+        this.count = null;
         return this;
     }
 
@@ -88,6 +118,41 @@ public class SQL<T> {
      */
     public SQL<T> delete() {
         this.statementType = StatementType.DELETE;
+        this.sets = new ArrayList<>();
+        this.wheres = new ArrayList<>();
+        this.sqls = new ArrayList<>();
+        this.offset = null;
+        this.count = null;
+        return this;
+    }
+
+    /**
+     * 执行创建操作
+     *
+     * @return 返回SQL对象
+     */
+    public SQL<T> create() {
+        this.statementType = StatementType.CREATE;
+        this.sets = new ArrayList<>();
+        this.wheres = new ArrayList<>();
+        this.sqls = new ArrayList<>();
+        this.offset = null;
+        this.count = null;
+        return this;
+    }
+
+    /**
+     * 执行删除操作
+     *
+     * @return 返回SQL对象
+     */
+    public SQL<T> drop() {
+        this.statementType = StatementType.DROP;
+        this.sets = new ArrayList<>();
+        this.wheres = new ArrayList<>();
+        this.sqls = new ArrayList<>();
+        this.offset = null;
+        this.count = null;
         return this;
     }
 
@@ -328,34 +393,38 @@ public class SQL<T> {
     }
 
     public SQL<T> parse() {
-        StringBuilder sb = new StringBuilder();
         atomicInteger = new AtomicInteger(0);
         switch (statementType) {
             case SELECT:
-                selectSQL(sb);
+                selectSQL();
                 break;
             case INSERT:
-                insertSQL(sb);
+                insertSQL();
                 break;
             case UPDATE:
-                updateSQL(sb);
+                updateSQL();
                 break;
             case DELETE:
-                deleteSQL(sb);
+                deleteSQL();
+                break;
+            case CREATE:
+                createSQL();
+                break;
+            case DROP:
+                dropSQL();
                 break;
             default:
         }
-        if (dbType != null) parse = SQLUtils.toSQLString(SQLUtils.parseStatements(sb.toString(), dbType), dbType);
-        else parse = sb.toString();
         return this;
     }
 
     /**
      * 构建SELECT语句
-     *
-     * @param sb SQL语句的构建器
      */
-    private void selectSQL(StringBuilder sb) {
+    private void selectSQL() {
+        StringBuilder sb = new StringBuilder();
+        // 获取表信息
+        TableModel tableModel = EntityUtils.getTable(clazz);
         // 添加SELECT语句的类型
         sb.append(statementType.getValue());
         // 如果columns不为空，则遍历columns列表，将每个字段名添加到sb中，并在每个字段名后面添加逗号
@@ -363,9 +432,13 @@ public class SQL<T> {
             // 如果columns为空，则添加"*"和逗号
         else sb.append("*,");
         // 删除最后一个逗号，并添加FROM和table
-        sb.delete(sb.length() - 1, sb.length()).append(" FROM ").append(table);
+        sb.delete(sb.length() - 1, sb.length()).append(" FROM ").append(tableModel.getName());
         // 添加WHERE语句
         whereSQL(sb);
+        String sql = sb.toString();
+        if (dbType != null) sql = SQLUtils.toSQLString(SQLUtils.parseStatements(sb.toString(), dbType), dbType);
+        if (offset != null && count != null) sql = PagerUtils.limit(sql, dbType, offset, count);
+        sqls.add(sql);
     }
 
     /**
@@ -417,73 +490,182 @@ public class SQL<T> {
         if (!whereSQL.isEmpty()) sb.append(" WHERE ").append(whereSQL);
     }
 
-
     /**
-     * Generates the SQL INSERT statement based on the given sets.
-     *
-     * @param sb the StringBuilder to append the generated SQL INSERT statement to
+     * Insert SQL
      */
-    private void insertSQL(StringBuilder sb) {
-        sb.append(statementType.getValue()).append(table).append(" (").append(sets.stream().map(set -> {
+    private void insertSQL() {
+        StringBuilder sb = new StringBuilder();
+        // 获取表信息
+        TableModel tableModel = EntityUtils.getTable(clazz);
+        sb.append(statementType.getValue()).append(tableModel.getName()).append(" (").append(sets.stream().map(set -> {
             params.put(atomicInteger.incrementAndGet(), set.getValue());
             return set.getField();
         }).collect(Collectors.joining(","))).append(") VALUES (").append(sets.stream().map(set -> "?").collect(Collectors.joining(","))).append(")");
+        if (dbType != null) {
+            sqls.add(SQLUtils.toSQLString(SQLUtils.parseStatements(sb.toString(), dbType), dbType));
+        } else {
+            sqls.add(sb.toString());
+        }
     }
 
     /**
-     * Generates the SQL UPDATE statement based on the given sets.
-     *
-     * @param sb the StringBuilder to append the generated SQL UPDATE statement to
+     * Update SQL
      */
-    private void updateSQL(StringBuilder sb) {
-        sb.append(statementType.getValue()).append(table).append(" SET "); // Append the UPDATE statement with the table name
+    private void updateSQL() {
+        StringBuilder sb = new StringBuilder();
+        // 获取表信息
+        TableModel tableModel = EntityUtils.getTable(clazz);
+        sb.append(statementType.getValue()).append(tableModel.getName()).append(" SET "); // Append the UPDATE statement with the table name
         sb.append(sets.stream().map(set -> { // Iterate over each set
             params.put(atomicInteger.incrementAndGet(), set.getValue()); // Add the set value to the params map with a unique key
             return set.getField() + " = ?"; // Append the set field with a placeholder for the value
         }).collect(Collectors.joining(","))); // Join the set fields with commas
         whereSQL(sb); // Append the WHERE clause to the SQL statement
+        if (dbType != null) {
+            sqls.add(SQLUtils.toSQLString(SQLUtils.parseStatements(sb.toString(), dbType), dbType));
+        } else {
+            sqls.add(sb.toString());
+        }
     }
 
     /**
      * 构建删除SQL语句
-     *
-     * @param sb SQL语句构建器
      */
-    private void deleteSQL(StringBuilder sb) {
+    private void deleteSQL() {
+        StringBuilder sb = new StringBuilder();
+        // 获取表信息
+        TableModel tableModel = EntityUtils.getTable(clazz);
         // 添加删除语句类型和表名
-        sb.append(statementType.getValue()).append(table);
+        sb.append(statementType.getValue()).append(tableModel.getName());
 
         // 添加WHERE子句
         whereSQL(sb);
+        if (dbType != null) sqls.add(SQLUtils.toSQLString(SQLUtils.parseStatements(sb.toString(), dbType), dbType));
+        else sqls.add(sb.toString());
     }
 
     /**
-     * 分页查询
-     * @param offset 分页偏移量
-     * @param count 每页显示数量
-     * @return SQL对象
+     * 创建SQL语句
      */
-    public SQL<T> page(int offset, int count) {
-        // 检查数据库类型是否已设置
-        if (dbType == null)
-            throw new SQLRuntimeException("设置分页前，请使用setDbtype设置数据库类型!");
+    private void createSQL() {
+        // 初始化StringBuilder和List
+        StringBuilder sb = new StringBuilder();
+        // 获取表信息
+        TableModel tableModel = EntityUtils.getTable(clazz);
 
-        // 使用PagerUtils对查询语句进行分页处理
-        this.parse = PagerUtils.limit(parse, dbType, offset, count);
+        // 添加表注释
+        sqls.add(String.format("comment on table %s is '%s'", tableModel.getName(), tableModel.getDesc()));
 
-        return this;
+        // 构建创建表的SQL语句
+        sb.append("create table ").append(tableModel.getName()).append(" (");
+        tableModel.getCols().forEach(col -> {
+            sb.append(col.getColumnName()).append(" ").append(col.getDefinition()).append(",");
+            // 添加列注释
+            sqls.add(String.format("comment on column %s.%s is '%s'", tableModel.getName(), col.getColumnName(), col.getDesc()));
+        });
+
+        // 删除最后一个逗号并添加表结束符号
+        int length = sb.length();
+        sb.delete(length - 1, length).append(")");
+        sqls.add(0, sb.toString());
+    }
+
+    /**
+     * 添加删除表的SQL语句
+     */
+    private void dropSQL() {
+        // 获取表信息
+        TableModel tableModel = EntityUtils.getTable(clazz);
+        sqls.add("DROP TABLE " + tableModel.getName());
     }
 
     /**
      * 设置数据库方言
+     *
      * @param dbType 数据库方言
      * @return SQL对象
      */
     public SQL<T> dialect(DbType dbType) {
         this.dbType = dbType;
-        if (parse != null && parse.length() > 0)
-            parse = SQLUtils.toSQLString(SQLUtils.parseStatements(parse, dbType), dbType);
         return this;
+    }
+
+    /**
+     * 分页查询
+     *
+     * @param offset 分页偏移量
+     * @param count  每页显示数量
+     * @return SQL对象
+     */
+    public SQL<T> page(int offset, int count) {
+        // 检查数据库类型是否已设置
+        if (dbType == null) throw new SQLRuntimeException("设置分页前，请使用dialect设置数据库类型!");
+        if (statementType != StatementType.SELECT) throw new SQLRuntimeException("非查询模式，不能调用page方法！");
+        this.offset = offset;
+        this.count = count;
+        return this;
+    }
+
+    /**
+     * 执行查询操作
+     *
+     * @param connection 数据库连接
+     * @return 查询结果列表
+     */
+    public List<T> executeQuery(Connection connection) {
+        if (statementType != StatementType.SELECT)
+            throw new SQLRuntimeException("非查询模式，不能调用executeQuery方法！");
+        return ExecuteSqlUtils.executeQuery(connection, this.sqls.get(0), this.params, this.clazz);
+    }
+
+    /**
+     * 执行更新操作
+     *
+     * @param connection 数据库连接
+     * @return 更新的行数
+     * @throws SQLRuntimeException 如果不是新增、更新、删除模式，抛出异常
+     */
+    public int executeUpdate(Connection connection) {
+        // 检查是否是新增、更新、删除模式
+        if (statementType != StatementType.INSERT && statementType != StatementType.UPDATE && statementType != StatementType.DELETE)
+            throw new SQLRuntimeException("非新增、更新、删除模式，不能调用executeUpdate方法！");
+
+        // 执行更新操作
+        return ExecuteSqlUtils.executeUpdate(connection, this.sqls.get(0), this.params);
+    }
+
+    /**
+     * 判断表是否存在
+     *
+     * @param connection 数据库连接
+     * @return 存在返回true，否则返回false
+     */
+    public Boolean isTableExists(Connection connection) {
+        // 获取表信息
+        TableModel tableModel = EntityUtils.getTable(clazz);
+        return ExecuteSqlUtils.isTableExists(connection, tableModel.getName());
+    }
+
+    /**
+     * 创建表
+     *
+     * @param connection 数据库连接
+     * @return 创建成功返回0，否则返回-1
+     */
+    public int createTable(Connection connection) {
+        if (statementType != StatementType.CREATE) throw new SQLRuntimeException("非建表模式，不能调用createTable方法！");
+        return ExecuteSqlUtils.executeUpdate(connection, this.sqls);
+    }
+
+    /**
+     * 删除表
+     *
+     * @param connection 数据库连接
+     * @return 删除成功返回0，否则返回-1
+     */
+    public int dropTable(Connection connection) {
+        if (statementType != StatementType.DROP) throw new SQLRuntimeException("非删表模式，不能调用dropTable方法！");
+        return ExecuteSqlUtils.executeUpdate(connection, this.sqls.get(0));
     }
 
 }

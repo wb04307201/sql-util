@@ -14,7 +14,7 @@ public class User {
     @Column(value = "id")
     private String id;
 
-    @Column(value = "user_name", type = ColumnType.VARCHAR, length = 20)
+    @Column(value = "user_name",desc = "用户名", type = ColumnType.VARCHAR, length = 20)
     private String userName;
 
     @Column(value = "department")

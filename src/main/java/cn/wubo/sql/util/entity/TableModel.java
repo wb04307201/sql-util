@@ -83,9 +83,9 @@ public class TableModel {
             }
 
             Arrays.stream(fieldAnns).filter(Key.class::isInstance).findAny().ifPresent(ann -> {
-                Key key = (Key) ann;
+                Key tempKey = (Key) ann;
                 this.key = true;
-                this.generationType = key.value();
+                this.generationType = tempKey.value();
             });
 
             Arrays.stream(fieldAnns).filter(Condition.class::isInstance).findAny().ifPresent(ann -> {

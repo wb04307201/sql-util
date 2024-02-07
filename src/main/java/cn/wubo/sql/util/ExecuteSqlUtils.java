@@ -1,22 +1,19 @@
 package cn.wubo.sql.util;
 
-import cn.wubo.sql.util.entity.DataTableEntity;
-import cn.wubo.sql.util.entity.MethodEntity;
-import cn.wubo.sql.util.exception.ExecuteSqlUtilsException;
+import cn.wubo.sql.util.entity.EntityUtils;
+import cn.wubo.sql.util.entity.TableModel;
+import cn.wubo.sql.util.exception.ExecuteSqlException;
+import cn.wubo.sql.util.utils.MapUtils;
 import lombok.extern.slf4j.Slf4j;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
 import java.sql.*;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 @Slf4j
 public class ExecuteSqlUtils {
-
-    private static final String MAP_NAME = "java.util.Map";
 
     private ExecuteSqlUtils() {
     }
@@ -38,35 +35,8 @@ public class ExecuteSqlUtils {
             return getResult(preparedStatement.executeQuery(), clazz);
         } catch (SQLException | NoSuchMethodException | InstantiationException | IllegalAccessException |
                  InvocationTargetException e) {
-            throw new ExecuteSqlUtilsException(e);
+            throw new ExecuteSqlException(e);
         }
-    }
-
-
-    /**
-     * 执行查询操作并返回结果集
-     *
-     * @param connection 数据库连接对象
-     * @param sql        查询语句
-     * @param clazz      查询结果集的类型
-     * @param <T>        查询结果集的类型
-     * @return 查询结果集的列表
-     */
-    public static <T> List<T> executeQuery(Connection connection, String sql, Class<T> clazz) {
-        return executeQuery(connection, sql, new HashMap<>(), clazz);
-    }
-
-
-    /**
-     * 执行查询操作并返回结果列表
-     *
-     * @param connection 数据库连接对象
-     * @param sql        SQL语句对象
-     * @param <T>        结果类型
-     * @return 查询结果列表
-     */
-    public static <T> List<T> executeQuery(Connection connection, SQL<T> sql) {
-        return executeQuery(connection, sql.getParse(), sql.getParams(), sql.getClazz());
     }
 
     /**
@@ -80,23 +50,20 @@ public class ExecuteSqlUtils {
      * @return 查询结果列表
      */
     public static <T> List<T> executeQuery(Connection connection, String sql, Map<Integer, Object> params, TypeReference<T> typeReference) {
-        return executeQuery(connection, sql, params, (Class<T>) ((ParameterizedType) typeReference.type).getRawType());
+        return executeQuery(connection, sql, params, typeReference.clazz);
     }
-
 
     /**
-     * 执行查询操作并返回结果列表
+     * 执行查询操作，返回查询结果的列表
      *
-     * @param connection 数据库连接对象
-     * @param sql        SQL查询语句
-     * @param type       结果类型的引用
-     * @param <T>        结果类型的参数
-     * @return 结果列表
+     * @param connection    数据库连接对象
+     * @param sql           SQL查询语句
+     * @param typeReference 查询结果的类型引用
+     * @return 查询结果的列表
      */
-    public static <T> List<T> executeQuery(Connection connection, String sql, TypeReference<T> type) {
-        return executeQuery(connection, sql, new HashMap<>(), (Class<T>) ((ParameterizedType) type.type).getRawType());
+    public static <T> List<T> executeQuery(Connection connection, String sql, TypeReference<T> typeReference) {
+        return executeQuery(connection, sql, new HashMap<>(), typeReference.clazz);
     }
-
 
     /**
      * 执行更新数据库操作
@@ -113,23 +80,9 @@ public class ExecuteSqlUtils {
                 preparedStatement.setObject(entry.getKey(), entry.getValue());
             return preparedStatement.executeUpdate();
         } catch (SQLException e) {
-            throw new ExecuteSqlUtilsException(e);
+            throw new ExecuteSqlException(e);
         }
     }
-
-
-    /**
-     * 执行更新操作
-     *
-     * @param connection 数据库连接对象
-     * @param sql        SQL对象
-     * @param <T>        SQL泛型类型
-     * @return 更新的行数
-     */
-    public static <T> int executeUpdate(Connection connection, SQL<T> sql) {
-        return executeUpdate(connection, sql.getParse(), sql.getParams());
-    }
-
 
     /**
      * 执行更新操作
@@ -142,6 +95,20 @@ public class ExecuteSqlUtils {
         return executeUpdate(connection, sql, new HashMap<>());
     }
 
+    public static int executeUpdate(Connection connection, List<String> sqls) {
+        int count = 0;
+        try {
+            connection.setAutoCommit(false);
+            for (String sql : sqls) {
+                count += executeUpdate(connection, sql);
+            }
+            connection.commit();
+            connection.setAutoCommit(true);
+        } catch (SQLException e) {
+            throw new ExecuteSqlException(e);
+        }
+        return count;
+    }
 
     /**
      * 处理返回值
@@ -157,22 +124,21 @@ public class ExecuteSqlUtils {
      */
     private static <T> List<T> getResult(ResultSet rs, Class<T> clazz) throws NoSuchMethodException, InstantiationException, IllegalAccessException, SQLException, InvocationTargetException {
         log.debug("getResult ...... class:{}", clazz.getName());
-        if (Boolean.TRUE.equals(isMap(clazz))) return result2Map(rs, clazz);
+        if (Boolean.TRUE.equals(MapUtils.isMap(clazz))) return result2Map(rs, clazz);
         else return result2Class(rs, clazz);
     }
 
-
     /**
-     * 将ResultSet转换为List集合
+     * 将ResultSet转换为Map列表
      *
      * @param rs    ResultSet对象
-     * @param clazz 类型参数
-     * @return 转换后的List集合
-     * @throws SQLException
-     * @throws InstantiationException
-     * @throws IllegalAccessException
-     * @throws NoSuchMethodException
-     * @throws InvocationTargetException
+     * @param clazz Map的泛型类型
+     * @return 转换后的Map列表
+     * @throws SQLException              如果出现SQL异常
+     * @throws InstantiationException    如果出现实例化异常
+     * @throws IllegalAccessException    如果出现访问权限异常
+     * @throws NoSuchMethodException     如果出现方法不存在异常
+     * @throws InvocationTargetException 如果出现方法调用目标异常
      */
     private static <T> List<T> result2Map(ResultSet rs, Class<T> clazz) throws SQLException, InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
         log.debug("result2Map ...... ");
@@ -186,7 +152,7 @@ public class ExecuteSqlUtils {
         // 数据
         Method method = clazz.getMethod("put", Object.class, Object.class);
         while (rs.next()) {
-            T row = createMap(clazz);
+            T row = MapUtils.createMap(clazz);
             for (int i = 1; i <= count; i++)
                 method.invoke(row, headers[i - 1], rs.getObject(i));
             result.add(row);
@@ -194,170 +160,39 @@ public class ExecuteSqlUtils {
         return result;
     }
 
-
-    private static <T> Boolean isMap(Class<T> clazz) {
-        // 判断给定的类是否是Map接口或其实现类
-        return clazz.getName().equals(MAP_NAME) || Arrays.stream(clazz.getInterfaces()).anyMatch(item -> item.getName().equals(MAP_NAME)) || Arrays.stream(clazz.getSuperclass().getInterfaces()).anyMatch(item -> item.getName().equals(MAP_NAME));
-    }
-
-
     /**
-     * 根据给定的类类型创建并返回一个空的Map对象。
-     *
-     * @param clazz Map对象的类类型
-     * @return 创建的空的Map对象
-     * @throws InstantiationException 当实例化创建Map对象时发生异常
-     * @throws IllegalAccessException 当访问实例化创建的Map对象时发生异常
+     * 将ResultSet转换为指定类型的List集合
+     * @param rs ResultSet对象
+     * @param clazz 指定的类型
+     * @return 转换后的List集合
+     * @throws InstantiationException
+     * @throws IllegalAccessException
+     * @throws SQLException
      */
-    private static <T> T createMap(Class<T> clazz) throws InstantiationException, IllegalAccessException {
-        if (clazz == Properties.class) return (T) new Properties();
-        if (clazz == Hashtable.class) return (T) new Hashtable<>();
-        if (clazz == IdentityHashMap.class) return (T) new IdentityHashMap<>();
-        if (clazz == SortedMap.class || clazz == TreeMap.class) return (T) new TreeMap<>();
-        if (clazz == ConcurrentMap.class || clazz == ConcurrentHashMap.class) return (T) new ConcurrentHashMap<>();
-        if (clazz == Map.class || clazz == HashMap.class) return (T) new HashMap<>();
-        if (clazz == LinkedHashMap.class) return (T) new LinkedHashMap<>();
-        return clazz.newInstance();
-    }
-
-    /**
-     * 将ResultSet中的数据转换为指定类的列表
-     *
-     * @param rs    ResultSet对象，包含要转换的数据
-     * @param clazz 要转换为的实体类的Class对象
-     * @return 转换后的实体类列表
-     * @throws SQLException           如果在执行SQL操作时发生错误
-     * @throws InstantiationException 如果实例化实体类失败
-     * @throws IllegalAccessException 如果无法访问实体类的的方法或属性
-     */
-    private static <T> List<T> result2Class(ResultSet rs, Class<T> clazz) throws SQLException, InstantiationException, IllegalAccessException {
-        // 创建实体类列表
+    private static <T> List<T> result2Class(ResultSet rs, Class<T> clazz) throws InstantiationException, IllegalAccessException, SQLException {
         List<T> result = new ArrayList<>();
-
-        // 获取实体类中的方法信息
-        HashMap<String, MethodEntity> hmMethods = new HashMap<>();
-        Arrays.stream(clazz.getDeclaredMethods()).forEach(method -> {
-            MethodEntity methodEntity = new MethodEntity();
-
-            // 获取方法的名称
-            String methodName = method.getName();
-            String methodKey = methodName.toUpperCase();
-
-            // 获取方法的参数
-            Class<?>[] paramTypes = method.getParameterTypes();
-            methodEntity.setMethodName(methodName);
-            methodEntity.setMethodParamTypes(paramTypes);
-
-            // 处理方法重载
-            if (hmMethods.containsKey(methodKey)) {
-                methodEntity.setRepeatMethodNum(methodEntity.getRepeatMethodNum() + 1);
-                methodEntity.setRepeatMethodsParamTypes(paramTypes);
-            } else {
-                hmMethods.put(methodKey, methodEntity);
-            }
-        });
-
-        // 获取 ResultSet 的元数据信息
-        ResultSetMetaData rsMetaData = rs.getMetaData();
-        int columnCount = rsMetaData.getColumnCount();
-
-        // 创建 DataTableEntity 对象
-        DataTableEntity dataTable = new DataTableEntity(columnCount);
-        for (int i = 0; i < columnCount; i++) {
-            String columnName = rsMetaData.getColumnName(i + 1);
-            int columnType = rsMetaData.getColumnType(i + 1);
-
-            // 获取字段名称和类型
-            dataTable.setColumnName(columnName, i);
-            dataTable.setColumnType(columnType, i);
+        TableModel tableModel = EntityUtils.getTable(clazz);
+        ResultSetMetaData rsmd = rs.getMetaData();
+        int count = rsmd.getColumnCount();
+        Map<String, TableModel.ColumnModel> headerMap = new HashMap<>();
+        for (int i = 1; i <= count; i++) {
+            String header = rsmd.getColumnLabel(i);
+            tableModel.getCols().stream().filter(col -> header.equalsIgnoreCase(col.getColumnName())).findAny().ifPresent(col -> headerMap.put(header, col));
         }
-
-        // 处理 ResultSet 数据信息
         while (rs.next()) {
-            // 转换为实体类并添加到列表中
-            result.add(toRow(rs, clazz, dataTable, hmMethods));
-        }
-
-        // 返回实体类列表
-        return result;
-    }
-
-
-    /**
-     * 将ResultSet中的数据转换为指定类的实例对象
-     *
-     * @param rs        ResultSet对象，用于获取数据
-     * @param clazz     转换后的对象的类型
-     * @param dataTable DataTableEntity对象，用于获取列信息
-     * @param hmMethods 用于存储方法信息的HashMap对象，键为方法名，值为MethodEntity对象
-     * @return 转换后的对象
-     * @throws InstantiationException 当实例化对象失败时抛出该异常
-     * @throws IllegalAccessException 当访问受保护的字段时抛出该异常
-     */
-    private static <T> T toRow(ResultSet rs, Class<T> clazz, DataTableEntity dataTable, HashMap<String, MethodEntity> hmMethods) throws InstantiationException, IllegalAccessException {
-        T row = clazz.newInstance();
-        String[] strColumnNames = dataTable.getColumnNames();
-        Arrays.stream(strColumnNames).forEach(columnName -> {
-            try {
-                // 获取字段值
-                Object objColumnValue = rs.getObject(columnName);
-                if (objColumnValue != null) {
-                    // 获取set方法名
-                    String strMethodKey = "SET" + columnName.toUpperCase();
-                    // 值和方法都不为空,这里方法名不为空即可,值可以为空的
-                    // 判断字段的类型,方法名，参数类型
-                    MethodEntity methodEntity = hmMethods.get(strMethodKey);
-                    if (methodEntity != null) {
-                        String methodName = methodEntity.getMethodName();
-                        int repeatMethodNum = methodEntity.getRepeatMethodNum();
-                        Class<?>[] paramTypes = methodEntity.getMethodParamTypes();
-                        Method method = clazz.getMethod(methodName, paramTypes);
-                        // 如果重载方法数 > 1，则判断是否有java.lang.IllegalArgumentException异常，循环处理
-                        trySetValue(clazz, method, row, objColumnValue, repeatMethodNum, methodEntity, methodName);
-                    }
+            T row = clazz.newInstance();
+            headerMap.entrySet().forEach(entry -> {
+                Field field = entry.getValue().getField();
+                field.setAccessible(true);
+                try {
+                    field.set(row, rs.getObject(entry.getKey()));
+                } catch (IllegalAccessException | SQLException e) {
+                    throw new ExecuteSqlException(e);
                 }
-            } catch (SQLException | NoSuchMethodException e) {
-                log.debug(e.getMessage(), e);
-            }
-        });
-        return row;
-    }
-
-    private static <T> void trySetValue(Class<T> clazz, Method method, T row, Object objColumnValue, int repeatMethodNum, MethodEntity methodEntity, String methodName) throws NoSuchMethodException {
-        try {
-            // 尝试设置参数值
-            method.invoke(row, objColumnValue);
-        } catch (IllegalArgumentException | InvocationTargetException | IllegalAccessException e) {
-            log.debug(e.getMessage(), e);
-            // 处理重载方法
-            tryOverride(clazz, repeatMethodNum, methodEntity, methodName, row, objColumnValue);
+            });
+            result.add(row);
         }
-    }
-
-
-    /**
-     * 尝试覆盖指定类中的重载方法，将指定参数值传入方法并调用
-     *
-     * @param clazz           指定的类对象
-     * @param repeatMethodNum 重载方法的个数
-     * @param methodEntity    包含重载方法信息的实体对象
-     * @param methodName      重载方法名
-     * @param row             指定的对象行（用于确定调用的类）
-     * @param objColumnValue  参数值对象
-     * @throws NoSuchMethodException 如果找不到指定的重载方法
-     */
-    private static <T> void tryOverride(Class<T> clazz, int repeatMethodNum, MethodEntity methodEntity, String methodName, T row, Object objColumnValue) throws NoSuchMethodException {
-        Method method;
-        for (int j = 1; j < repeatMethodNum; j++) {
-            try {
-                Class<?>[] repeatParamTypes = methodEntity.getRepeatMethodsParamTypes(j - 1);
-                method = clazz.getMethod(methodName, repeatParamTypes);
-                method.invoke(row, objColumnValue);
-                break;
-            } catch (IllegalArgumentException | InvocationTargetException | IllegalAccessException ex) {
-                log.debug(ex.getMessage(), ex);
-            }
-        }
+        return result;
     }
 
 
@@ -383,22 +218,20 @@ public class ExecuteSqlUtils {
     }
 
     /**
-     * 判断数据库中是否存在指定表。
+     * 判断表是否存在
      *
      * @param connection 数据库连接对象
-     * @param sql        指定的SQL对象
-     * @param <T>        泛型类型
-     * @return 如果表存在则返回true，否则返回false
+     * @param tableName  表名
+     * @return 表是否存在
      */
-    public static <T> Boolean isTableExists(Connection connection, SQL<T> sql) {
-        String tableName = sql.getTable();
+    public static Boolean isTableExists(Connection connection, String tableName) {
         try {
             String driverName = connection.getMetaData().getDriverName();
             if ("H2 JDBC Driver".equals(driverName)) tableName = tableName.toUpperCase();
             else tableName = tableName.toLowerCase();
             return isTableExists(connection, null, null, tableName, new String[]{"TABLE"});
         } catch (SQLException e) {
-            throw new ExecuteSqlUtilsException(e);
+            throw new ExecuteSqlException(e);
         }
     }
 
