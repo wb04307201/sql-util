@@ -4,9 +4,11 @@ import cn.wubo.sql.util.annotations.Column;
 import cn.wubo.sql.util.annotations.Key;
 import cn.wubo.sql.util.annotations.Table;
 import cn.wubo.sql.util.enums.ColumnType;
+import lombok.Data;
 
 import java.util.Date;
 
+@Data
 @Table(value = "test_user", desc = "用户")
 public class User {
 

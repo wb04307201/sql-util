@@ -14,21 +14,7 @@ public class TestController {
             MutilConnectionPool.init("test", "jdbc:h2:file:./data/demo;AUTO_SERVER=TRUE", "sa", "");
         }
 
-        TypeReference typeReference1 = new TypeReference<Map<String, Object>>() {
-        };
-        System.out.println(typeReference1.clazz);
-
-        TypeReference typeReference2 = new TypeReference<User>() {
-        };
-        System.out.println(typeReference2.clazz);
-
-        TypeReference typeReference3 = new TypeReference<HashMap<String, Object>>() {
-        };
-        System.out.println(typeReference3.clazz);
-
         User user = new User();
-
-        SQL sql = new SQL<User>(){};
 
         Boolean check = MutilConnectionPool.run("test", connection -> new SQL<User>() {
         }.isTableExists(connection));
@@ -40,6 +26,12 @@ public class TestController {
 
         MutilConnectionPool.run("test", connection -> new SQL<User>() {
         }.create().parse().createTable(connection));
+
+        MutilConnectionPool.run("test", connection -> new SQL<User>() {
+        }.insert().addSet("user_name","aaaa").parse().executeUpdate(connection));
+
+        MutilConnectionPool.run("test", connection -> new SQL<User>() {
+        }.delete().addWhereEQ("user_name","aaaa").parse().executeUpdate(connection));
 
 
     }
