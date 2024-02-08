@@ -25,4 +25,11 @@ public @interface Column {
 
     //数值类型小数位数
     int scale() default 2;
+
+    // 列顺序
+    int sort() default 100;
+
+    View view() default @View;
+
+    Edit edit() default @Edit;
 }

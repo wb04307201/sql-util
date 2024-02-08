@@ -8,5 +8,8 @@ import java.lang.annotation.*;
 @Documented
 public @interface Table {
     String value();
+
     String desc() default "";
+
+    Ds ds() default @Ds(url = "", username = "", passowrd = "");
 }

@@ -1,11 +1,15 @@
 package cn.wubo.sql.util.annotations;
 
-import java.lang.annotation.*;
-
-@Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.FIELD})
-@Documented
 public @interface View {
     boolean show() default true;
-    int sort() default 100;
+
+    boolean sortable() default true;
+
+    boolean exportable() default true;
+
+    int width() default -1;
+
+    boolean translatable() default false;
+
+    Item[] items() default {};
 }
