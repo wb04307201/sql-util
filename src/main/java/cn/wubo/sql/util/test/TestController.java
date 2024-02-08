@@ -1,11 +1,10 @@
 package cn.wubo.sql.util.test;
 
+import cn.wubo.sql.util.ModelSqlUtils;
 import cn.wubo.sql.util.MutilConnectionPool;
 import cn.wubo.sql.util.SQL;
-import cn.wubo.sql.util.TypeReference;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 public class TestController {
 
@@ -13,8 +12,6 @@ public class TestController {
         if (Boolean.FALSE.equals(MutilConnectionPool.check("test"))) {
             MutilConnectionPool.init("test", "jdbc:h2:file:./data/demo;AUTO_SERVER=TRUE", "sa", "");
         }
-
-        User user = new User();
 
         Boolean check = MutilConnectionPool.run("test", connection -> new SQL<User>() {
         }.isTableExists(connection));
@@ -28,11 +25,36 @@ public class TestController {
         }.create().parse().createTable(connection));
 
         MutilConnectionPool.run("test", connection -> new SQL<User>() {
-        }.insert().addSet("user_name","aaaa").parse().executeUpdate(connection));
+        }.insert().addSet("user_name", "aaaa").parse().executeUpdate(connection));
 
         MutilConnectionPool.run("test", connection -> new SQL<User>() {
-        }.delete().addWhereEQ("user_name","aaaa").parse().executeUpdate(connection));
+        }.update().addSet("user_name", "bbbb").addWhereEQ("user_name", "aaaa").parse().executeUpdate(connection));
+
+        List<User> list = MutilConnectionPool.run("test", connection -> new SQL<User>() {
+        }.select().addWhereEQ("user_name", "bbbb").parse().executeQuery(connection));
+        System.out.println(list);
+
+        MutilConnectionPool.run("test", connection -> new SQL<User>() {
+        }.delete().addWhereEQ("user_name", "bbbb").parse().executeUpdate(connection));
+
+        User user = new User();
+
+        if(MutilConnectionPool.run("test", connection -> ModelSqlUtils.createSql(user).isTableExists(connection))){
+            MutilConnectionPool.run("test", connection -> ModelSqlUtils.dropSql(user).dropTable(connection));
+        }
+        MutilConnectionPool.run("test", connection -> ModelSqlUtils.createSql(user).createTable(connection));
+
+        user.setUserName("12345");
+        MutilConnectionPool.run("test", connection -> ModelSqlUtils.insertSql(user).executeUpdate(connection));
 
 
+        List<User> userList = MutilConnectionPool.run("test", connection -> ModelSqlUtils.selectSql(user).executeQuery(connection));
+        System.out.println(userList);
+
+        User updateUser = userList.get(0);
+        updateUser.setUserName("54321");
+        MutilConnectionPool.run("test", connection -> ModelSqlUtils.updateSql(updateUser).executeUpdate(connection));
+
+        MutilConnectionPool.run("test", connection -> ModelSqlUtils.deleteSql(updateUser).executeUpdate(connection));
     }
 }

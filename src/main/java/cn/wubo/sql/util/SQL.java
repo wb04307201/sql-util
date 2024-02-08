@@ -53,6 +53,10 @@ public class SQL<T> {
         }
     }
 
+    public SQL(Class<T> clazz) {
+        this.clazz = clazz;
+    }
+
     /**
      * 设置SQL语句类型为查询（SELECT）。
      *

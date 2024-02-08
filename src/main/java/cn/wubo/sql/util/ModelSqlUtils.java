@@ -5,6 +5,7 @@ import cn.wubo.sql.util.entity.TableModel;
 import cn.wubo.sql.util.enums.GenerationType;
 import cn.wubo.sql.util.enums.StatementCondition;
 import cn.wubo.sql.util.exception.ModelSqlException;
+import com.alibaba.druid.DbType;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -28,7 +29,7 @@ public class ModelSqlUtils {
         Class<T> clazz = (Class<T>) data.getClass();
         // 获取表信息
         TableModel tableModel = EntityUtils.getTable(clazz);
-        SQL<T> sql = new SQL<T>() {
+        SQL<T> sql = new SQL<T>(clazz) {
         }.insert();
 
         // 遍历字段列表，将非空字段添加到SQL的set语句中
@@ -57,7 +58,7 @@ public class ModelSqlUtils {
         TableModel tableModel = EntityUtils.getTable(clazz);
 
         // 创建SQL对象并设置表名
-        SQL<T> sql = new SQL<T>() {
+        SQL<T> sql = new SQL<T>(clazz) {
         }.update();
 
         // 遍历所有字段，将非id字段添加到set语句中
@@ -85,7 +86,7 @@ public class ModelSqlUtils {
         Class<T> clazz = (Class<T>) data.getClass();
         // 获取表信息
         TableModel tableModel = EntityUtils.getTable(clazz);
-        SQL<T> sql = new SQL<T>() {
+        SQL<T> sql = new SQL<T>(clazz) {
         }.delete();
 
         // 根据id字段名筛选出id字段
@@ -99,17 +100,19 @@ public class ModelSqlUtils {
     }
 
     /**
-     * 生成查询的SQL语句
+     * 生成分页查询SQL
      *
-     * @param data 数据
-     * @param <T>  实体类
+     * @param data   待查询的数据
+     * @param dbType 数据库类型
+     * @param offset 分页偏移量
+     * @param count  分页大小
      * @return SQL对象
      */
-    public static <T> SQL<T> selectSql(T data) {
+    public static <T> SQL<T> selectByPageSql(T data, DbType dbType, Integer offset, Integer count) {
         Class<T> clazz = (Class<T>) data.getClass();
         // 获取表信息
         TableModel tableModel = EntityUtils.getTable(clazz);
-        SQL<T> sql = new SQL<T>() {
+        SQL<T> sql = new SQL<T>(clazz) {
         }.select();
 
         // 遍历字段列表，根据字段值生成where条件
@@ -136,8 +139,19 @@ public class ModelSqlUtils {
             }
         });
 
+        if (dbType != null) {
+            sql.dialect(dbType);
+            if (offset != null && count != null) {
+                sql.page(offset, count);
+            }
+        }
+
         // 解析并返回SQL
         return sql.parse();
+    }
+
+    public static <T> SQL<T> selectSql(T data) {
+        return selectByPageSql(data, null, null, null);
     }
 
     /**
@@ -145,9 +159,9 @@ public class ModelSqlUtils {
      *
      * @return 生成的SQL语句列表
      */
-    public static <T> SQL<T> createSql() {
-        return new SQL<T>() {
-        }.create();
+    public static <T> SQL<T> createSql(T data) {
+        return new SQL<T>((Class<T>) data.getClass()) {
+        }.create().parse();
     }
 
     /**
@@ -155,9 +169,9 @@ public class ModelSqlUtils {
      *
      * @return 删除表的SQL语句
      */
-    public static <T> SQL<T> dropSql() {
-        return new SQL<T>() {
-        }.drop();
+    public static <T> SQL<T> dropSql(T data) {
+        return new SQL<T>((Class<T>) data.getClass()) {
+        }.drop().parse();
     }
 
 }
