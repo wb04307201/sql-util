@@ -196,27 +196,6 @@ public class MutilConnectionPool {
     }
 
     /**
-     * 执行指定的BiFunction函数在一个新的数据库连接上
-     *
-     * @param key        数据库连接的key
-     * @param biFunction 需要执行的BiFunction函数
-     * @param u          BiFunction函数的参数
-     * @param <U>        BiFunction函数的参数类型
-     * @param <R>        BiFunction函数的返回值类型
-     * @return BiFunction函数的返回值
-     * @throws ConnectionPoolException 如果获取数据库连接失败
-     */
-    public static <U, R> R run(String key, BiFunction<Connection, U, R> biFunction, U u) {
-        try (Connection connection = getConnection(key)) {
-            // 在数据库连接上执行BiFunction函数
-            return biFunction.apply(connection, u);
-        } catch (SQLException e) {
-            // 如果获取数据库连接失败，则抛出ConnectionPoolException异常
-            throw new ConnectionPoolException(e);
-        }
-    }
-
-    /**
      * 在数据库连接上执行Function函数
      *
      * @param key      数据库连接的key

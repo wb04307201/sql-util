@@ -68,6 +68,7 @@ public class SQL<T> {
         this.columns = Arrays.asList(columns);
         this.sets = new ArrayList<>();
         this.wheres = new ArrayList<>();
+        this.params = new HashMap<>();
         this.sqls = new ArrayList<>();
         this.offset = null;
         this.count = null;
@@ -93,6 +94,7 @@ public class SQL<T> {
         this.statementType = StatementType.INSERT;
         this.sets = new ArrayList<>();
         this.wheres = new ArrayList<>();
+        this.params = new HashMap<>();
         this.sqls = new ArrayList<>();
         this.offset = null;
         this.count = null;
@@ -109,6 +111,7 @@ public class SQL<T> {
         this.statementType = StatementType.UPDATE;
         this.sets = new ArrayList<>();
         this.wheres = new ArrayList<>();
+        this.params = new HashMap<>();
         this.sqls = new ArrayList<>();
         this.offset = null;
         this.count = null;
@@ -125,6 +128,7 @@ public class SQL<T> {
         this.sets = new ArrayList<>();
         this.wheres = new ArrayList<>();
         this.sqls = new ArrayList<>();
+        this.params = new HashMap<>();
         this.offset = null;
         this.count = null;
         return this;
@@ -140,6 +144,7 @@ public class SQL<T> {
         this.sets = new ArrayList<>();
         this.wheres = new ArrayList<>();
         this.sqls = new ArrayList<>();
+        this.params = new HashMap<>();
         this.offset = null;
         this.count = null;
         return this;
@@ -155,6 +160,7 @@ public class SQL<T> {
         this.sets = new ArrayList<>();
         this.wheres = new ArrayList<>();
         this.sqls = new ArrayList<>();
+        this.params = new HashMap<>();
         this.offset = null;
         this.count = null;
         return this;

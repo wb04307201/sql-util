@@ -38,175 +38,145 @@
 </dependency>
 ```
 
+## 第三步 使用工具
 #### MutilConnectionPool使用示例
 ```java
-
+        // 判断数据源是否加载
+        if (Boolean.FALSE.equals(MutilConnectionPool.check("test"))) {
+            // 加载数据源
+            MutilConnectionPool.init("test", "jdbc:h2:file:./data/demo;AUTO_SERVER=TRUE", "sa", "");
+        }
+        // 获取数据源，注意使用完之后释放连接
+        Connection connection = MutilConnectionPool.getConnection("test");
+        connection.close();
+        // 通过传入函数式接口执行方法，内部会自动创建连接并在使用之后释放
+        MutilConnectionPool.run("test", conn -> null);
 ```
 
-#### ModelSqlUtils、ExecuteSqlUtils、ConnectionPool、SQL的使用示例
+#### ExecuteSqlUtils使用示例
 ```java
-@Slf4j
-@RestController
-public class TestController implements DisposableBean {
-
-    /**
-     * 创建连接池
-     */
-    private static ConnectionPool connectionPool = new ConnectionPool(new ConnectionParam());
-
-    /**
-     * 增删改查
-     */
-    @GetMapping(value = "/test1")
-    public List<User> test1() {
-        //检测表是否存在，不存在创建表
-        if (Boolean.FALSE.equals(connectionPool.run((connection, sql) -> {
-            return ExecuteSqlUtils.isTableExists(connection, sql);
-        }, SQL.tableExists("userInfo", DbType.h2)))) {
-            connectionPool.run((connection, sqlStr) -> {
-                return ExecuteSqlUtils.executeUpdate(connection, sqlStr);
-            }, ModelSqlUtils.createSql("userInfo", User.class));
+        // 判断数据源是否加载
+        if (Boolean.FALSE.equals(MutilConnectionPool.check("test"))) {
+        // 加载数据源
+        MutilConnectionPool.init("test", "jdbc:h2:file:./data/demo;AUTO_SERVER=TRUE", "sa", "");
         }
 
-        User user1 = new User();
-        String id1 = UUID.randomUUID().toString();
-        user1.setId(id1);
-        user1.setName("aaaa");
-        user1.setCode("aaaa");
-        User user2 = new User();
-        String id2 = UUID.randomUUID().toString();
-        user2.setId(id2);
-        user2.setName("bbbb");
-        user2.setCode("bbbb");
-        //插入数据
-        connectionPool.run((connection, sql) -> {
-            return ExecuteSqlUtils.executeUpdate(connection, sql);
-        }, ModelSqlUtils.insertSql("userInfo", user1));
-        connectionPool.run((connection, sql) -> {
-            return ExecuteSqlUtils.executeUpdate(connection, sql);
-        }, ModelSqlUtils.insertSql("userInfo", user2));
-        //删除数据
-        connectionPool.run((connection, sql) -> {
-            return ExecuteSqlUtils.executeUpdate(connection, sql);
-        }, ModelSqlUtils.deleteByIdSql("userInfo", user1));
-        //更新数据
-        user2.setPassword("bbbb");
-        connectionPool.run((connection, sql) -> {
-            return ExecuteSqlUtils.executeUpdate(connection, sql);
-        }, ModelSqlUtils.updateByIdSql("userInfo", user2));
-        //查询
-        List<User> list1 = connectionPool.run((connection, sql) -> {
-            return ExecuteSqlUtils.executeQuery(connection, sql);
-        }, ModelSqlUtils.selectSql("userInfo", new User()));
-        log.debug(list1.toString());
-        //使用id查询
-        User query = new User();
-        query.setId(id2);
-        List<User> list2 = connectionPool.run((connection, sql) -> {
-            return ExecuteSqlUtils.executeQuery(connection, sql);
-        }, ModelSqlUtils.selectSql("userInfo", query));
-        log.debug(list2.toString());
-        //查询返回Map
-        SQL<Map> sqlMap = SQL.select(Map.class).table("userInfo").parse();
-        List<Map> list3 = connectionPool.run((connection, sql) -> {
-            return ExecuteSqlUtils.executeQuery(connection, sql);
-        }, sqlMap);
-        log.debug(list3.toString());
-        //分页查询
-        List<User> list4 = connectionPool.run((connection, sql) -> {
-            return ExecuteSqlUtils.executeQuery(connection, sql);
-        }, ModelSqlUtils.selectSql("userInfo", new User()).setDbtype(DbType.h2).page(1, 2));
-        log.debug(list4.toString());
+        Connection connection = MutilConnectionPool.getConnection("test");
 
-        // 泛型
-        SQL<Map<String,Object>> mapSQL = SQL.select(new TypeReference<Map<String,Object>>(){},"*").table("userInfo").parse();
-        List<Map<String,Object>> list5 = connectionPool.run((connection, sql) -> {
-            return ExecuteSqlUtils.executeQuery(connection, sql);
-        },mapSQL);
-        log.debug(list5.toString());
-        
-        return list4;
-    }
+        // 判断表是否存在
+        Boolean check = ExecuteSqlUtils.isTableExists(connection, "test_user");
+        // 通过MutilConnectionPool.run检查表是否存在
+        check = MutilConnectionPool.run("test", conn -> ExecuteSqlUtils.isTableExists(conn, "test_user"));
 
-    /**
-     * 事务一致性
-     *
-     * @return
-     * @throws SQLException
-     */
-    @GetMapping(value = "/test2")
-    public void test2() throws SQLException, InterruptedException {
-        // 1. 获取连接
-        Connection connection = connectionPool.getConnection();
-        // 2. 禁用自动提交
-        connection.setAutoCommit(false);
-        // TODO 3. 业务处理，比如使用ExecuteSqlUtils工具类下方法执行sql
-        // 4. 提交代码
-        connection.commit();
-        // 5. 开启自动提交
-        connection.setAutoCommit(true);
-        // 6. 释放连接回连接池
-        connectionPool.returnConnection(connection);
-    }
+        Map<Integer, Object> params = new HashMap<>();
+        params.put(1, "123123");
+        // 执行插入、更新的sql语句
+        int count = ExecuteSqlUtils.executeUpdate(connection, "update test_user set user_name = ?", params);
+        count = MutilConnectionPool.run("test", conn -> ExecuteSqlUtils.executeUpdate(conn, "update test_user set user_name = ?", params));
 
-    /**
-     * 销毁所有连接
-     *
-     * @throws Exception
-     */
-    @Override
-    public void destroy() throws Exception {
-        connectionPool.destory();
-    }
+        // 执行查询的sql语句
+        List<Map<String, Object>> list = ExecuteSqlUtils.executeQuery(connection, "select * from test_user where user_name = ?", params, new TypeReference<Map<String, Object>>() {
+        });
+        list = MutilConnectionPool.run("test", conn -> ExecuteSqlUtils.executeQuery(conn, "select * from test_user where user_name = ?", params, new TypeReference<Map<String, Object>>() {
+        }));
 
-    @GetMapping(value = "/test3")
-    public List<Map<String, Object>> select() {
-        String key = "";
-        String url = "";
-        String username = "";
-        String passowrd = "";
+        // 执行删除的sql语句
+        MutilConnectionPool.run("test", conn -> ExecuteSqlUtils.executeUpdate(conn, "delete from test_user where user_name = ?", params));
 
-        // 获取链接，也可以注入DataSource后通过DataSource初始化，仅支持DruidDataSource，重构方法没有key如参数时默认数据源key为master
-        // 如果使用baomidou的多数据源，需要DynamicRoutingDataSource中获取真实的DataSource
-        // 例如：ItemDataSource itemDataSource = (ItemDataSource) dataSource.getDataSource("master")
-        //      itemDataSource.getRealDataSource()
-        try (Connection connection = MutilConnectionPool.getConnection(key, url, username, passowrd)) {
-            // 获取数据源后通过ExecuteSqlUtils工具类执行sql语句进行查询
-            List<Map<String, Object>> list1 = ExecuteSqlUtils.executeQuery(connection, "select a.* from aaaa a", new HashMap<>(), new cn.wubo.sql.util.TypeReference<Map<String, Object>>() {
-            });
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        connection.close();
+```
 
-        // MutilConnectionPool工具类中的run方法，将ExecuteSqlUtils.executeQuery使用lambda表达式传入直接执行
-        List<Map<String, Object>> list2 = MutilConnectionPool.run(key, url, username, passowrd, (conn, sql) -> ExecuteSqlUtils.executeQuery(conn, sql, new HashMap<>(), new cn.wubo.sql.util.TypeReference<Map<String, Object>>() {
-        }), "select a.* from aaaa a");
+#### 在测试SQL、ModelSqlUtils前，请先创建一个测试实体类，例如
+```java
+package cn.wubo.sql.util.test;
 
-        return list2;
-    }
+import cn.wubo.sql.util.annotations.Column;
+import cn.wubo.sql.util.annotations.Key;
+import cn.wubo.sql.util.annotations.Table;
+import cn.wubo.sql.util.enums.ColumnType;
+import lombok.Data;
+
+import java.util.Date;
+
+@Data
+@Table(value = "test_user", desc = "用户")
+public class User {
+
+    @Key
+    @Column(value = "id")
+    private String id;
+
+    @Column(value = "user_name",desc = "用户名", type = ColumnType.VARCHAR, length = 20)
+    private String userName;
+
+    @Column(value = "department")
+    private String department;
+
+    @Column(value = "birth", type = ColumnType.DATE)
+    private Date birth;
+
+    @Column(value = "birth1")
+    private Date birth1;
+
+    @Column(value = "age", type = ColumnType.NUMBER, precision = 10, scale = 0)
+    private Integer age;
+
+    @Column(value = "age1")
+    private Integer age1;
 }
 ```
-#### MutilConnectionPool多数据源连接池的使用示例
-```java
-        // 获取链接，注意多数据源连接池仅支持传入DruidDatasource，如果需要使用多数据源，需要从DynamicRoutingDataSource中获取真实的DataSource，默认数据源key为master
-        ItemDataSource itemDataSource = (ItemDataSource) dataSource.getDataSource("master");
-        Connection connection1 = cn.wubo.sql.util.MutilConnectionPool.getConnection(itemDataSource.getRealDataSource());
-        // 也可以使用自定义的数据源key用来区分连接池
-        Connection connection2 = MutilConnectionPool.getConnection("datasourceKey", new com.alibaba.druid.pool.DruidDataSource());
-        // 也可以通过数据源信息创建连接
-        DataSourceInfo dataSourceInfo = new DataSourceInfo();
-        Connection connection3 = MutilConnectionPool.getConnection(String.valueOf(dataSourceInfo.getDataSourceId()), dataSourceInfo.getUrl(), dataSourceInfo.getUserName(), dataSourceInfo.getPassword());
 
-        // MutilConnectionPool工具类中的run方法，将ExecuteSqlUtils.executeQuery使用lambda表达式传入直接执行
-        List<Map<String, Object>> list2 = MutilConnectionPool.run(itemDataSource.getRealDataSource(), (conn, sql) -> ExecuteSqlUtils.executeQuery(conn, sql, new HashMap<>(), new cn.wubo.sql.util.TypeReference<Map<String, Object>>() {
-        }), "select a.* from aaaa a");
-        List<Map<String, Object>> list3 = MutilConnectionPool.run(String.valueOf(dataSourceInfo.getDataSourceId()), dataSourceInfo.getUrl(), dataSourceInfo.getUserName(), dataSourceInfo.getPassword(), (conn, sql) -> ExecuteSqlUtils.executeQuery(conn, sql, new HashMap<>(), new cn.wubo.sql.util.TypeReference<Map<String, Object>>() {
-        }), "select a.* from aaaa a");
-        
-        // 可设置连接池的默认配置，如连接池初始化连接数、最大连接数、最小连接数、最大等待时间等
-        // 通过传入DruidDatasource的方式不支持上述配置
-        MutilConnectionPool.setDefaultInitialSize
-        MutilConnectionPool.setDefaultMaxActive
-        MutilConnectionPool.setDefaultMinIdle
-        MutilConnectionPool.setDefaultMaxWait
+#### SQL使用示例
+```java
+        // 判断数据源是否加载
+        if (Boolean.FALSE.equals(MutilConnectionPool.check("test"))) {
+            // 加载数据源
+            MutilConnectionPool.init("test", "jdbc:h2:file:./data/demo;AUTO_SERVER=TRUE", "sa", "");
+        }
+        SQL<User> userSQL = new SQL<User>(){};
+        // 判断表是否存在
+        if(Boolean.TRUE.equals(MutilConnectionPool.run("test",conn -> userSQL.isTableExists(conn)))){
+            // 删除表
+            MutilConnectionPool.run("test",conn -> userSQL.drop().parse().dropTable(conn));
+        }
+        // 创建表
+        MutilConnectionPool.run("test",conn -> userSQL.create().parse().createTable(conn));
+        // 插入数据
+        MutilConnectionPool.run("test",conn -> userSQL.insert().addSet("user_name","11111").parse().executeUpdate(conn));
+        // 更新数据
+        MutilConnectionPool.run("test",conn -> userSQL.update().addSet("user_name","22222").addWhereEQ("user_name","11111").parse().executeUpdate(conn));
+        // 查询数据
+        List<User> userList = MutilConnectionPool.run("test",conn -> userSQL.select().addWhereEQ("user_name","22222").parse().executeQuery(conn));
+        // 删除数据
+        MutilConnectionPool.run("test",conn -> userSQL.delete().addWhereEQ("user_name","22222").parse().executeUpdate(conn));
 ```
+
+#### ModelSqlUtils使用示例
+```java
+        // 判断数据源是否加载
+        if (Boolean.FALSE.equals(MutilConnectionPool.check("test"))) {
+            // 加载数据源
+            MutilConnectionPool.init("test", "jdbc:h2:file:./data/demo;AUTO_SERVER=TRUE", "sa", "");
+        }
+
+        User user = new User();
+        // 判断表是否存在
+        if (MutilConnectionPool.run("test", conn -> ModelSqlUtils.SQL(user).isTableExists(conn))) {
+            // 删除表
+            MutilConnectionPool.run("test", conn -> ModelSqlUtils.dropSql(user).dropTable(conn));
+        }
+        // 创建表
+        MutilConnectionPool.run("test", conn -> ModelSqlUtils.createSql(user).createTable(conn));
+        // 插入数据
+        user.setUserName("112233");
+        MutilConnectionPool.run("test", conn -> ModelSqlUtils.insertSql(user).executeUpdate(conn));
+        // 查询数据
+        List<User> userList = MutilConnectionPool.run("test", conn -> ModelSqlUtils.selectSql(user).executeQuery(conn));
+        user.setId(userList.get(0).getId());
+        user.setUserName("332211");
+        // 更新数据
+        MutilConnectionPool.run("test", conn -> ModelSqlUtils.updateSql(user).executeUpdate(conn));
+        // 删除数据
+        MutilConnectionPool.run("test", conn -> ModelSqlUtils.deleteSql(user).executeUpdate(conn));
+```
+
