@@ -19,7 +19,7 @@ public class ModelSqlUtils {
     }
 
     /**
-     * 根据数据插入SQL语句
+     * 根据数据插入SQL语句，根据标识的主键{@link @Key}生成主键值
      *
      * @param data 数据
      * @param <T>  数据类型
@@ -47,40 +47,30 @@ public class ModelSqlUtils {
     }
 
     /**
-     * 生成更新SQL语句
-     *
+     * 生成更新SQL语句，根据标识的主键{@link @Key}更新数据
      * @param data 数据对象
-     * @return SQL对象
+     * @return SQL语句
      */
     public static <T> SQL<T> updateSql(T data) {
         Class<T> clazz = (Class<T>) data.getClass();
         // 获取表信息
         TableModel tableModel = EntityUtils.getTable(clazz);
-
-        // 创建SQL对象并设置表名
         SQL<T> sql = new SQL<T>(clazz) {
         }.update();
-
-        // 遍历所有字段，将非id字段添加到set语句中
         tableModel.getCols().stream().filter(col -> !col.getKey()).forEach(col -> {
             Object valObj = EntityUtils.getValue(col.getField(), data);
             if (valObj != null) sql.addSet(col.getColumnName(), valObj);
         });
-
-        // 获取id字段
         TableModel.ColumnModel keyCol = tableModel.getCols().stream().filter(TableModel.ColumnModel::getKey).findAny().orElseThrow(() -> new ModelSqlException("主键未定义"));
-
-        // 添加where语句
         sql.addWhereEQ(keyCol.getColumnName(), Objects.requireNonNull(EntityUtils.getValue(keyCol.getField(), data), "主键值不能为空"));
-
         return sql.parse();
     }
 
+
     /**
-     * 构造删除SQL语句
-     *
+     * 构造删除SQL语句，根据标识的主键{@link @Key}删除数据
      * @param data 待删除的数据对象
-     * @return 构造好的SQL语句
+     * @return SQL语句
      */
     public static <T> SQL<T> deleteSql(T data) {
         Class<T> clazz = (Class<T>) data.getClass();
@@ -88,16 +78,11 @@ public class ModelSqlUtils {
         TableModel tableModel = EntityUtils.getTable(clazz);
         SQL<T> sql = new SQL<T>(clazz) {
         }.delete();
-
-        // 根据id字段名筛选出id字段
         TableModel.ColumnModel keyCol = tableModel.getCols().stream().filter(TableModel.ColumnModel::getKey).findAny().orElseThrow(() -> new ModelSqlException("主键未定义"));
-
-        // 在sql语句中加入where条件，根据id值进行等值比较
         sql.addWhereEQ(keyCol.getColumnName(), Objects.requireNonNull(EntityUtils.getValue(keyCol.getField(), data), "主键值不能为空"));
-
-        // 解析并返回SQL
         return sql.parse();
     }
+
 
     /**
      * 生成分页查询SQL
