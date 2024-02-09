@@ -10,4 +10,6 @@ public @interface Table {
     String value();
 
     String desc() default "";
+
+    Ds ds() default @Ds();
 }

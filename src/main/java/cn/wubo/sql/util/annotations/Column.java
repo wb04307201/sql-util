@@ -28,4 +28,8 @@ public @interface Column {
 
     // 列顺序
     int sort() default 100;
+
+    View view() default @View;
+
+    Edit edit() default @Edit;
 }
