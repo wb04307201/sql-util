@@ -12,13 +12,36 @@
 3. 使用[消息中间件](https://gitee.com/wb04307201/message-spring-boot-starter)、[实体SQL工具类](https://gitee.com/wb04307201/sql-util)实现的[消息发送代码示例](https://gitee.com/wb04307201/message-demo)
 4. 使用[动态调度](https://gitee.com/wb04307201/dynamic-schedule-spring-boot-starter)、[消息中间件](https://gitee.com/wb04307201/message-spring-boot-starter)、[动态编译加载执行工具](https://gitee.com/wb04307201/loader-util)、[实体SQL工具类](https://gitee.com/wb04307201/sql-util)实现的[在线编码、动态调度、发送钉钉群消息Demo](https://gitee.com/wb04307201/dynamic-schedule-demo)
 
-| 工具类                 | 描述                                                                                  |
-|---------------------|-------------------------------------------------------------------------------------|
-| ModelSqlUtils       | 从实体类生成建表、删表、增删改查等sql工具 类                                                            |
-| ExecuteSqlUtils     | sql语句执行工具类                                                                          |
-| ConnectionPool      | 一个简单的链接池,通过新建ConnectionParam对象能快速的的初始化一个h2数据库连接池,也可在新建ConnectionParam对象时传入其他数据库配置信息 |
-| MutilConnectionPool | 一个多数据源连接池                                                                           |
-| SQL                 | SQL构造工具类                                                                            |
+| 序号 | 工具类                 | 描述             |
+|----|---------------------|----------------|
+| 1  | MutilConnectionPool | 一个多数据源连接池      |
+| 2  | ExecuteSqlUtils     | sql语句执行工具类     |
+| 3  | SQL                 | SQL构造工具，执行工具   |
+| 4  | ModelSqlUtils       | 从实体类构造SQL，执行工具 |
+
+## 第一步 增加 JitPack 仓库
+```xml
+<repositories>
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
+```
+
+## 第二步 引入jar
+```xml
+<dependency>
+    <groupId>com.gitee.wb04307201</groupId>
+    <artifactId>sql-util</artifactId>
+    <version>1.2.17</version>
+</dependency>
+```
+
+#### MutilConnectionPool使用示例
+```java
+
+```
 
 #### ModelSqlUtils、ExecuteSqlUtils、ConnectionPool、SQL的使用示例
 ```java

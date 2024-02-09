@@ -11,5 +11,5 @@ public @interface Table {
 
     String desc() default "";
 
-    Ds ds() default @Ds(url = "", username = "", passowrd = "");
+    Ds ds() default @Ds();
 }

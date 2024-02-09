@@ -12,4 +12,6 @@ public @interface Edit {
     boolean readonly() default false;
 
     String placeholder() default "";
+
+    Item[] items() default {};
 }

@@ -155,13 +155,23 @@ public class ModelSqlUtils {
     }
 
     /**
+     * 构造函数，用于创建一个SQL对象
+     * @param data 数据对象
+     * @return SQL对象
+     */
+    public static <T> SQL<T> SQL(T data) {
+        return new SQL<T>((Class<T>) data.getClass()) {
+        };
+    }
+
+
+    /**
      * 根据传入的数据类型，生成对应的SQL语句
      *
      * @return 生成的SQL语句列表
      */
     public static <T> SQL<T> createSql(T data) {
-        return new SQL<T>((Class<T>) data.getClass()) {
-        }.create().parse();
+        return SQL(data).create().parse();
     }
 
     /**
@@ -170,8 +180,7 @@ public class ModelSqlUtils {
      * @return 删除表的SQL语句
      */
     public static <T> SQL<T> dropSql(T data) {
-        return new SQL<T>((Class<T>) data.getClass()) {
-        }.drop().parse();
+        return SQL(data).drop().parse();
     }
 
 }

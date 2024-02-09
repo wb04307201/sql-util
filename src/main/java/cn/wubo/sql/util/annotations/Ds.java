@@ -2,9 +2,9 @@ package cn.wubo.sql.util.annotations;
 
 public @interface Ds {
 
-    String url();
+    String url() default "";
 
-    String username();
+    String username() default "";
 
-    String passowrd();
+    String passowrd() default "";
 }
