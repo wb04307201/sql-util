@@ -35,4 +35,9 @@ public class StringUtils {
         if (str == null || str.isEmpty()) throw new StringException(String.format(IS_EMPTY_MESSAGE, message));
     }
 
+    public static String defaultValue(String str1, String str2) {
+        if (str1 == null || str1.isEmpty()) return str2;
+        else return str1;
+    }
+
 }

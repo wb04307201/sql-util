@@ -5,6 +5,7 @@ import cn.wubo.sql.util.cache.MemoryCache;
 import cn.wubo.sql.util.exception.ModelSqlException;
 import cn.wubo.sql.util.exception.TableModelException;
 import cn.wubo.sql.util.utils.MapUtils;
+import cn.wubo.sql.util.utils.StringUtils;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -26,7 +27,7 @@ public class EntityUtils {
             Optional<Annotation> tableAnnOpt = Arrays.stream(tableAnns).filter(Table.class::isInstance).findAny();
             if (tableAnnOpt.isPresent()) {
                 Table table = (Table) tableAnnOpt.get();
-                tableModel = new TableModel(table.value(), table.desc()).setDs(table.ds());
+                tableModel = new TableModel(table.value(), StringUtils.defaultValue(table.desc(), clazz.getSimpleName())).setDs(table.ds());
             } else {
                 tableModel = new TableModel(clazz.getSimpleName(), clazz.getSimpleName());
             }
@@ -39,7 +40,7 @@ public class EntityUtils {
     private static List<TableModel.ColumnModel> transToColumns(Class<?> clazz) {
         List<Field> fields = new ArrayList<>();
         getFields(clazz, fields);
-        return fields.stream().map(TableModel.ColumnModel::new).collect(Collectors.toList());
+        return fields.stream().map(TableModel.ColumnModel::new).sorted(Comparator.comparing(TableModel.ColumnModel::getSort)).toList();
     }
 
     private static void getFields(Class<?> clazz, List<Field> fields) {

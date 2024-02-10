@@ -8,9 +8,11 @@ import cn.wubo.sql.util.enums.ColumnType;
 import cn.wubo.sql.util.enums.EditType;
 import cn.wubo.sql.util.enums.GenerationType;
 import cn.wubo.sql.util.enums.StatementCondition;
+import cn.wubo.sql.util.utils.StringUtils;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
+import lombok.ToString;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -22,6 +24,7 @@ import java.sql.Timestamp;
 import java.util.*;
 
 @Getter
+@ToString
 public class TableModel {
     private String name;
     private String desc;
@@ -84,7 +87,7 @@ public class TableModel {
             if (columnAnnOpt.isPresent()) {
                 Column column = (Column) columnAnnOpt.get();
                 this.columnName = column.value();
-                this.desc = column.desc();
+                this.desc = StringUtils.defaultValue(column.desc(), field.getName());
                 this.type = column.type().getValue();
                 this.definition = this.type;
                 this.sort = column.sort();

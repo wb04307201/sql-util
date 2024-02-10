@@ -15,13 +15,14 @@
 <!-- 查询区域 -->
 <form class="layui-form layui-row layui-col-space16">
     <#list data.cols as item>
-        <#if item.getEdit().search>
+        <#if item.getEdit().search && !item.key>
             <div class="layui-col-md4">
                 <div class="layui-form-item">
                     <label class="layui-form-label">${item.desc}</label>
                     <div class="layui-input-block">
+                        ${item.getEdit().type}
                         <#if item.getEdit().type?? && item.getEdit().type == 'SELECT'>
-                            <select name="${item.name}">
+                            <select name="${item.fieldName}">
                                 <option value="" selected>全部</option>
                                 <#if item.getEdit().items?size gt 0>
                                     <#list item.getEdit().items as option>
@@ -30,11 +31,11 @@
                                 </#if>
                             </select>
                         <#elseif item.getEdit().type?? && item.getEdit().type == 'NUMBER'>
-                            <input type="text" name="${item.name}" placeholder="${item.getEdit().placeholder}"
+                            <input type="text" name="${item.fieldName}" placeholder="${item.getEdit().placeholder}"
                                    class="layui-input"
                                    lay-affix="number" step="${item.getEdit().step}" <#if item.getEdit().min??></#if>>
                         <#else>
-                            <input type="text" name="${item.name}" placeholder="${item.getEdit().placeholder}"
+                            <input type="text" name="${item.fieldName}" placeholder="${item.getEdit().placeholder}"
                                    class="layui-input"
                                    lay-affix="clear">
                         </#if>
@@ -54,7 +55,7 @@
 <script type="text/html" id="table-toolbar">
     <div class="layui-btn-container">
         <button class="layui-btn layui-btn-sm" lay-event="add">新建</button>
-        <button class="layui-btn layui-btn-sm" lay-event="del">删除</button>
+        <button type="button" class="layui-btn layui-btn-sm layui-bg-red" lay-event="del">删除</button>
     </div>
 </script>
 <!-- 操作列 -->
@@ -69,12 +70,12 @@
     <div class="layui-form" lay-filter="filter-edit-layer" style="margin: 16px;">
         <#list data.cols as item>
             <#if item.getEdit().show>
-                <div class="layui-col-md4">
+                <div class="layui-col-md4"<#if item.key> style="display: none"</#if>>
                     <div class="layui-form-item">
                         <label class="layui-form-label">${item.desc}</label>
                         <div class="layui-input-block">
                             <#if item.getEdit().type?? && item.getEdit().type == 'SELECT'>
-                                <select name="${item.name}">
+                                <select name="${item.fieldName}">
                                     <option value="" selected>全部</option>
                                     <#if item.getEdit().items?size gt 0>
                                         <#list item.getEdit().items as option>
@@ -83,12 +84,14 @@
                                     </#if>
                                 </select>
                             <#elseif item.getEdit().type?? && item.getEdit().type == 'NUMBER'>
-                                <input type="text" name="${item.name}" placeholder="${item.getEdit().getPlaceholder()}"
+                                <input type="text" name="${item.fieldName}"
+                                       placeholder="${item.getEdit().getPlaceholder()}"
                                        class="layui-input"
                                        lay-affix="number"
                                        step="${item.getEdit().step}" <#if item.getEdit().min??></#if>>
                             <#else>
-                                <input type="text" name="${item.name}" placeholder="${item.getEdit().getPlaceholder()}"
+                                <input type="text" name="${item.fieldName}"
+                                       placeholder="${item.getEdit().getPlaceholder()}"
                                        class="layui-input"
                                        lay-affix="clear">
                             </#if>
@@ -118,13 +121,14 @@
             cols: [[ //标题栏
                 {type: 'checkbox', fixed: 'left'},
                 {type: 'numbers', fixed: 'left'},
-                {field: 'id', title: 'ID', width: 150, fixed: 'left'},
                 <#list data.cols as item>
                 <#if item.getView().getShow()>
                 {
-                    field: '${item.name}',
+                    field: '${item.fieldName}',
                     title: '${item.desc}',
-                    <#if item.getView().getWidth()??>width: ${item.getView().getWidth()}</#if>
+                    <#if item.getView().width??>width: ${item.getView().width}, </#if>
+                    <#if item.key>hide: true,</#if>
+                    <#if item.getView().sortable>sort: true,</#if>
                 },
                 </#if>
                 </#list>
@@ -156,7 +160,7 @@
                 case 'add':
                     form.val('filter-edit-layer', {
                         <#list data.cols as item>
-                        "${item.name}": "",
+                        "${item.fieldName}": "",
                         </#list>
                     });
                     openRow();
@@ -207,7 +211,7 @@
                                 if (res.code === 200) {
                                     form.val('filter-edit-layer', {
                                         <#list data.cols as item>
-                                        "${item.name}": "",
+                                        "${item.fieldName}": "",
                                         </#list>
                                     });
                                     table.reloadData('table', {});
@@ -257,7 +261,7 @@
                 return layer.msg("已激活表不允许编辑!");
             form.val('filter-edit-layer', {
                 <#list data.cols as item>
-                "${item.name}": "",
+                "${item.fieldName}": "",
                 </#list>
             });
             fetch("${contextPath}/business/${id}/getById?id=" + data.id)

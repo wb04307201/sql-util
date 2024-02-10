@@ -1,8 +1,5 @@
 package cn.wubo.sql.util.web;
 
-import cn.wubo.sql.util.entity.EntityUtils;
-import cn.wubo.sql.util.test.User;
-import com.alibaba.fastjson2.JSONObject;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import org.springframework.context.annotation.Bean;
@@ -32,12 +29,12 @@ public class EntityWebConfig {
             Map<String, Object> map = new HashMap<>();
             map.put("contextPath", request.requestPath().contextPath().value());
             map.put("id", id);
-            map.put("data", EntityUtils.getTable(User.class));
+            map.put("data", entityWebService.view(id));
             return ServerResponse.ok().contentType(MediaType.TEXT_HTML).body(write("table.ftl", map));
         }).POST("/entity/select/{id}", request -> {
             String id = request.pathVariable("id");
-            //JGradioQuery query = request.body(JGradioQuery.class);
-            return null;
+            EntityWebQuery query = request.body(EntityWebQuery.class);
+            return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(entityWebService.select(id, query));
         }).build();
     }
 
