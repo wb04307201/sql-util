@@ -14,4 +14,6 @@ public @interface Edit {
     String placeholder() default "";
 
     Item[] items() default {};
+
+    boolean search() default true;
 }

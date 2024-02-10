@@ -1,5 +1,8 @@
 package cn.wubo.sql.util.web;
 
+import cn.wubo.sql.util.entity.EntityUtils;
+import cn.wubo.sql.util.test.User;
+import com.alibaba.fastjson2.JSONObject;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import org.springframework.context.annotation.Bean;
@@ -15,23 +18,23 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-public class SqlWebConfig {
+public class EntityWebConfig {
 
     @Bean
-    public SqlWebService sqlWebService() {
-        return new SqlWebService();
+    public EntityWebService sqlWebService() {
+        return new EntityWebService();
     }
 
     @Bean("wb04307201SqlWebRouter")
-    public RouterFunction<ServerResponse> sqlWebRouter(SqlWebService sqlWebService) {
-        return RouterFunctions.route().GET("/jgradio/view/{id}", request -> {
+    public RouterFunction<ServerResponse> sqlWebRouter(EntityWebService entityWebService) {
+        return RouterFunctions.route().GET("/entity/view/{id}", request -> {
             String id = request.pathVariable("id");
             Map<String, Object> map = new HashMap<>();
             map.put("contextPath", request.requestPath().contextPath().value());
             map.put("id", id);
-            //map.put("data", JSONObject.from(sqlWebService.view(id)));
+            map.put("data", EntityUtils.getTable(User.class));
             return ServerResponse.ok().contentType(MediaType.TEXT_HTML).body(write("table.ftl", map));
-        }).POST("/jgradio/select/{id}", request -> {
+        }).POST("/entity/select/{id}", request -> {
             String id = request.pathVariable("id");
             //JGradioQuery query = request.body(JGradioQuery.class);
             return null;

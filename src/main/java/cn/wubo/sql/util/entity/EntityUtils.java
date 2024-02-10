@@ -24,17 +24,13 @@ public class EntityUtils {
         if (tableModel == null) {
             Annotation[] tableAnns = clazz.getAnnotations();
             Optional<Annotation> tableAnnOpt = Arrays.stream(tableAnns).filter(Table.class::isInstance).findAny();
-            String tableName;
-            String tableDesc;
             if (tableAnnOpt.isPresent()) {
                 Table table = (Table) tableAnnOpt.get();
-                tableName = table.value();
-                tableDesc = table.desc();
+                tableModel = new TableModel(table.value(), table.desc()).setDs(table.ds());
             } else {
-                tableName = clazz.getSimpleName();
-                tableDesc = clazz.getSimpleName();
+                tableModel = new TableModel(clazz.getSimpleName(), clazz.getSimpleName());
             }
-            MemoryCache.putTableModel(clazz, new TableModel(tableName, tableDesc).addColumns(transToColumns(clazz)));
+            MemoryCache.putTableModel(clazz, tableModel.addColumns(transToColumns(clazz)));
             tableModel = MemoryCache.getTableModel(clazz);
         }
         return tableModel;

@@ -8,7 +8,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE})
 @Documented
-@Import({SqlWebConfig.class})
-public @interface EnableSqlWeb {
+@Import({EntityWebConfig.class})
+public @interface EnableEntityWeb {
 
 }

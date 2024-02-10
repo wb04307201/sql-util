@@ -30,11 +30,11 @@
                                 </#if>
                             </select>
                         <#elseif item.getEdit().type?? && item.getEdit().type == 'NUMBER'>
-                            <input type="text" name="${item.name}" placeholder="${item.getEdit().getPlaceholder()}"
+                            <input type="text" name="${item.name}" placeholder="${item.getEdit().placeholder}"
                                    class="layui-input"
                                    lay-affix="number" step="${item.getEdit().step}" <#if item.getEdit().min??></#if>>
                         <#else>
-                            <input type="text" name="${item.name}" placeholder="${item.getEdit().getPlaceholder()}"
+                            <input type="text" name="${item.name}" placeholder="${item.getEdit().placeholder}"
                                    class="layui-input"
                                    lay-affix="clear">
                         </#if>

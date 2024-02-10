@@ -2,10 +2,13 @@ package cn.wubo.sql.util.entity;
 
 import cn.wubo.sql.util.annotations.Column;
 import cn.wubo.sql.util.annotations.Condition;
+import cn.wubo.sql.util.annotations.Ds;
 import cn.wubo.sql.util.annotations.Key;
 import cn.wubo.sql.util.enums.ColumnType;
+import cn.wubo.sql.util.enums.EditType;
 import cn.wubo.sql.util.enums.GenerationType;
 import cn.wubo.sql.util.enums.StatementCondition;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
 
@@ -22,6 +25,7 @@ import java.util.*;
 public class TableModel {
     private String name;
     private String desc;
+    private DsModel ds;
     private List<ColumnModel> cols = new ArrayList<>();
 
     public TableModel(String name, String desc) {
@@ -29,9 +33,22 @@ public class TableModel {
         this.desc = desc;
     }
 
+    public TableModel setDs(Ds ds) {
+        this.ds = new DsModel(ds.url(), ds.username(), ds.passowrd());
+        return this;
+    }
+
     public TableModel addColumns(List<ColumnModel> cols) {
         this.cols.addAll(cols);
         return this;
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class DsModel {
+        private String url;
+        private String username;
+        private String password;
     }
 
     @Data
@@ -43,6 +60,7 @@ public class TableModel {
         private Integer length;
         private Integer precision;
         private Integer scale;
+        private Integer sort;
 
         private String definition;
 
@@ -52,6 +70,10 @@ public class TableModel {
         private StatementCondition statementCondition;
 
         private Field field;
+
+        private ViewModel view;
+
+        private EditModel edit;
 
         public ColumnModel(Field field) {
             this.fieldName = field.getName();
@@ -65,6 +87,7 @@ public class TableModel {
                 this.desc = column.desc();
                 this.type = column.type().getValue();
                 this.definition = this.type;
+                this.sort = column.sort();
                 if (column.type() == ColumnType.VARCHAR) {
                     this.length = column.length();
                     if (this.length != 0) this.definition = this.type + "(" + this.length + ")";
@@ -75,11 +98,14 @@ public class TableModel {
                         this.definition = this.type + "(" + this.precision + "," + this.scale + ")";
                     else if (this.precision != 0) this.definition = this.type + "(" + this.precision + ")";
                 }
+                this.view = new ViewModel(column.view().show(), column.view().sortable(), column.view().exportable(), column.view().width(), column.view().translatable(), Arrays.stream(column.view().items()).map(item -> new ItemModel(item.value(), item.label())).toList());
+                this.edit = new EditModel(column.edit().show(), column.edit().type(), column.edit().notNull(), column.edit().readonly(), column.edit().placeholder(), Arrays.stream(column.edit().items()).map(item -> new ItemModel(item.value(), item.label())).toList(), column.edit().search());
             } else {
                 this.columnName = field.getName();
                 this.desc = field.getName();
                 this.type = fieldTypeToDbType(field);
                 this.definition = this.type;
+                this.sort = 100;
             }
 
             Arrays.stream(fieldAnns).filter(Key.class::isInstance).findAny().ifPresent(ann -> {
@@ -92,6 +118,36 @@ public class TableModel {
                 Condition condition = (Condition) ann;
                 this.statementCondition = condition.value();
             });
+        }
+
+        @Data
+        @AllArgsConstructor
+        public static class ViewModel {
+            private Boolean show;
+            private Boolean sortable;
+            private Boolean exportable;
+            private Integer width;
+            private Boolean translatable;
+            private List<ItemModel> items;
+        }
+
+        @Data
+        @AllArgsConstructor
+        public static class EditModel {
+            private Boolean show;
+            private EditType type;
+            private Boolean notNull;
+            private Boolean readonly;
+            private String placeholder;
+            private List<ItemModel> items;
+            private Boolean search;
+        }
+
+        @Data
+        @AllArgsConstructor
+        public static class ItemModel {
+            private String value;
+            private String label;
         }
 
         /**
