@@ -1,6 +1,10 @@
 # sql-util 实体SQL工具
 
 [![](https://jitpack.io/v/com.gitee.wb04307201/sql-util.svg)](https://jitpack.io/#com.gitee.wb04307201/sql-util)
+[![star](https://gitee.com/wb04307201/sql-util/badge/star.svg?theme=dark)](https://gitee.com/wb04307201/sql-util)
+[![fork](https://gitee.com/wb04307201/sql-util/badge/fork.svg?theme=dark)](https://gitee.com/wb04307201/sql-util)
+[![star](https://img.shields.io/github/stars/wb04307201/sql-util)](https://github.com/wb04307201/sql-util)
+[![fork](https://img.shields.io/github/forks/wb04307201/sql-util)](https://github.com/wb04307201/sql-util)
 
 > 提供一套高效、便捷的数据库操作工具集，  
 > 包括多数据源连接池、SQL语句执行工具类、SQL构造工具以及从实体类构造SQL的工具。  
