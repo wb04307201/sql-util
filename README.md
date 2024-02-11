@@ -260,5 +260,5 @@ public class InitEntityWeb implements ApplicationRunner {
 ```
 
 ###### 通过id访问页面
-http://localhost:8080/entity/view/1111
+http://ip:port/entity/view/1111
 ![img.png](img.png)
