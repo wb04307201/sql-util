@@ -35,22 +35,22 @@ public class EntityWebConfig {
             return ServerResponse.ok().contentType(MediaType.TEXT_HTML).body(write("table.ftl", map));
         }).POST("/entity/select/{id}", request -> {
             String id = request.pathVariable("id");
-            Map<String, Object> params = request.body(new ParameterizedTypeReference<>() {
+            Map<String, Object> params = request.body(new ParameterizedTypeReference<Map<String, Object>>() {
             });
             return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(Result.success(entityWebService.select(id, params)));
         }).POST("/entity/save/{id}", request -> {
             String id = request.pathVariable("id");
-            Map<String, Object> params = request.body(new ParameterizedTypeReference<>() {
+            Map<String, Object> params = request.body(new ParameterizedTypeReference<Map<String, Object>>() {
             });
             return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(Result.success(entityWebService.save(id, params)));
         }).POST("/entity/delete/{id}", request -> {
             String id = request.pathVariable("id");
-            Map<String, Object> params = request.body(new ParameterizedTypeReference<>() {
+            Map<String, Object> params = request.body(new ParameterizedTypeReference<Map<String, Object>>() {
             });
             return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(Result.success(entityWebService.delete(id, params)));
         }).POST("/entity/getById/{id}", request -> {
             String id = request.pathVariable("id");
-            Map<String, Object> params = request.body(new ParameterizedTypeReference<>() {
+            Map<String, Object> params = request.body(new ParameterizedTypeReference<Map<String, Object>>() {
             });
             return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(Result.success(entityWebService.getById(id, params)));
         }).build();

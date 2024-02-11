@@ -22,6 +22,7 @@ import java.sql.Clob;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Getter
 @ToString
@@ -102,8 +103,8 @@ public class TableModel {
                         this.definition = this.type + "(" + this.precision + "," + this.scale + ")";
                     else if (this.precision != 0) this.definition = this.type + "(" + this.precision + ")";
                 }
-                this.view = new ViewModel(column.view().show(), column.view().sortable(), column.view().exportable(), column.view().width(), column.view().translatable(), Arrays.stream(column.view().items()).map(item -> new ItemModel(item.value(), item.label())).toList());
-                this.edit = new EditModel(column.edit().show(), column.edit().type(), column.edit().notNull(), column.edit().placeholder(), Arrays.stream(column.edit().items()).map(item -> new ItemModel(item.value(), item.label())).toList(), column.edit().search());
+                this.view = new ViewModel(column.view().show(), column.view().sortable(), column.view().exportable(), column.view().width(), column.view().translatable(), Arrays.stream(column.view().items()).map(item -> new ItemModel(item.value(), item.label())).collect(Collectors.toList()));
+                this.edit = new EditModel(column.edit().show(), column.edit().type(), column.edit().notNull(), column.edit().placeholder(), Arrays.stream(column.edit().items()).map(item -> new ItemModel(item.value(), item.label())).collect(Collectors.toList()), column.edit().search());
             } else {
                 this.columnName = field.getName();
                 this.desc = field.getName();

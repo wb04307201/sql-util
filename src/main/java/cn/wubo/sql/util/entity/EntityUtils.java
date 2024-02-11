@@ -15,6 +15,7 @@ import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class EntityUtils {
 
@@ -42,12 +43,12 @@ public class EntityUtils {
     private static List<TableModel.ColumnModel> transToColumns(Class<?> clazz) {
         List<Field> fields = new ArrayList<>();
         getFields(clazz, fields);
-        return fields.stream().map(TableModel.ColumnModel::new).sorted(Comparator.comparing(TableModel.ColumnModel::getSort)).toList();
+        return fields.stream().map(TableModel.ColumnModel::new).sorted(Comparator.comparing(TableModel.ColumnModel::getSort)).collect(Collectors.toList());
     }
 
     private static void getFields(Class<?> clazz, List<Field> fields) {
         if (clazz != null) {
-            fields.addAll(Arrays.stream(clazz.getDeclaredFields()).filter(field -> !field.isSynthetic()).filter(field -> !(Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(field.getModifiers()))).toList());
+            fields.addAll(Arrays.stream(clazz.getDeclaredFields()).filter(field -> !field.isSynthetic()).filter(field -> !(Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(field.getModifiers()))).collect(Collectors.toList()));
             getFields(clazz.getSuperclass(), fields);
         }
     }
