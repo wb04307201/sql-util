@@ -10,7 +10,10 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 public class ExecuteSqlUtils {
@@ -162,7 +165,8 @@ public class ExecuteSqlUtils {
 
     /**
      * 将ResultSet转换为指定类型的List集合
-     * @param rs ResultSet对象
+     *
+     * @param rs    ResultSet对象
      * @param clazz 指定的类型
      * @return 转换后的List集合
      * @throws InstantiationException
@@ -185,7 +189,7 @@ public class ExecuteSqlUtils {
                 Field field = entry.getValue().getField();
                 field.setAccessible(true);
                 try {
-                    field.set(row, rs.getObject(entry.getKey()));
+                    field.set(row, EntityUtils.getValue(entry.getValue(), rs.getObject(entry.getKey())));
                 } catch (IllegalAccessException | SQLException e) {
                     throw new ExecuteSqlException(e);
                 }

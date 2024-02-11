@@ -1,9 +1,11 @@
 package cn.wubo.sql.util.web;
 
+import cn.wubo.sql.util.result.Result;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.RouterFunctions;
@@ -33,8 +35,24 @@ public class EntityWebConfig {
             return ServerResponse.ok().contentType(MediaType.TEXT_HTML).body(write("table.ftl", map));
         }).POST("/entity/select/{id}", request -> {
             String id = request.pathVariable("id");
-            EntityWebQuery query = request.body(EntityWebQuery.class);
-            return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(entityWebService.select(id, query));
+            Map<String, Object> params = request.body(new ParameterizedTypeReference<>() {
+            });
+            return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(Result.success(entityWebService.select(id, params)));
+        }).POST("/entity/save/{id}", request -> {
+            String id = request.pathVariable("id");
+            Map<String, Object> params = request.body(new ParameterizedTypeReference<>() {
+            });
+            return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(Result.success(entityWebService.save(id, params)));
+        }).POST("/entity/delete/{id}", request -> {
+            String id = request.pathVariable("id");
+            Map<String, Object> params = request.body(new ParameterizedTypeReference<>() {
+            });
+            return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(Result.success(entityWebService.delete(id, params)));
+        }).POST("/entity/getById/{id}", request -> {
+            String id = request.pathVariable("id");
+            Map<String, Object> params = request.body(new ParameterizedTypeReference<>() {
+            });
+            return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(Result.success(entityWebService.getById(id, params)));
         }).build();
     }
 

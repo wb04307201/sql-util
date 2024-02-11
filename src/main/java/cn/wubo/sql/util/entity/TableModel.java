@@ -47,6 +47,7 @@ public class TableModel {
     }
 
     @Data
+    @ToString
     @AllArgsConstructor
     public static class DsModel {
         private String url;
@@ -102,7 +103,7 @@ public class TableModel {
                     else if (this.precision != 0) this.definition = this.type + "(" + this.precision + ")";
                 }
                 this.view = new ViewModel(column.view().show(), column.view().sortable(), column.view().exportable(), column.view().width(), column.view().translatable(), Arrays.stream(column.view().items()).map(item -> new ItemModel(item.value(), item.label())).toList());
-                this.edit = new EditModel(column.edit().show(), column.edit().type(), column.edit().notNull(), column.edit().readonly(), column.edit().placeholder(), Arrays.stream(column.edit().items()).map(item -> new ItemModel(item.value(), item.label())).toList(), column.edit().search());
+                this.edit = new EditModel(column.edit().show(), column.edit().type(), column.edit().notNull(), column.edit().placeholder(), Arrays.stream(column.edit().items()).map(item -> new ItemModel(item.value(), item.label())).toList(), column.edit().search());
             } else {
                 this.columnName = field.getName();
                 this.desc = field.getName();
@@ -140,7 +141,6 @@ public class TableModel {
             private Boolean show;
             private EditType type;
             private Boolean notNull;
-            private Boolean readonly;
             private String placeholder;
             private List<ItemModel> items;
             private Boolean search;

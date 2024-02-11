@@ -7,7 +7,7 @@ public @interface View {
 
     boolean exportable() default true;
 
-    int width() default -1;
+    int width() default 200;
 
     boolean translatable() default false;
 

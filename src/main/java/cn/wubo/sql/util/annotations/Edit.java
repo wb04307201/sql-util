@@ -9,8 +9,6 @@ public @interface Edit {
 
     boolean notNull() default false;
 
-    boolean readonly() default false;
-
     String placeholder() default "";
 
     Item[] items() default {};

@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>${data.name}-${data.desc}</title>
-    <link rel="stylesheet" type="text/css" href="${contextPath}/jgradio/static/layui/2.9.4/css/layui.css"/>
-    <script type="text/javascript" src="${contextPath}/jgradio/static/layui/2.9.4/layui.js"></script>
+    <link rel="stylesheet" type="text/css" href="${contextPath}/entity/web/static/layui/2.9.4/css/layui.css"/>
+    <script type="text/javascript" src="${contextPath}/entity/web/static/layui/2.9.4/layui.js"></script>
     <style>
         body {
             padding: 10px 20px 10px 20px;
@@ -20,7 +20,6 @@
                 <div class="layui-form-item">
                     <label class="layui-form-label">${item.desc}</label>
                     <div class="layui-input-block">
-                        ${item.getEdit().type}
                         <#if item.getEdit().type?? && item.getEdit().type == 'SELECT'>
                             <select name="${item.fieldName}">
                                 <option value="" selected>全部</option>
@@ -33,7 +32,12 @@
                         <#elseif item.getEdit().type?? && item.getEdit().type == 'NUMBER'>
                             <input type="text" name="${item.fieldName}" placeholder="${item.getEdit().placeholder}"
                                    class="layui-input"
-                                   lay-affix="number" step="${item.getEdit().step}" <#if item.getEdit().min??></#if>>
+                                   lay-affix="number">
+                        <#elseif item.getEdit().type?? && item.getEdit().type == 'DATE'>
+                            <input type="text" name="${item.fieldName}" class="layui-input"
+                                   id="search-${item.fieldName}"
+                                   placeholder="${item.getEdit().placeholder}"
+                                   lay-affix="clear">
                         <#else>
                             <input type="text" name="${item.fieldName}" placeholder="${item.getEdit().placeholder}"
                                    class="layui-input"
@@ -75,8 +79,7 @@
                         <label class="layui-form-label">${item.desc}</label>
                         <div class="layui-input-block">
                             <#if item.getEdit().type?? && item.getEdit().type == 'SELECT'>
-                                <select name="${item.fieldName}">
-                                    <option value="" selected>全部</option>
+                                <select name="${item.fieldName}"<#if item.getEdit().notNull?? && item.getEdit().notNull> lay-verify="required"</#if>>
                                     <#if item.getEdit().items?size gt 0>
                                         <#list item.getEdit().items as option>
                                             <option value="${option.value}">${option.label}</option>
@@ -87,13 +90,17 @@
                                 <input type="text" name="${item.fieldName}"
                                        placeholder="${item.getEdit().getPlaceholder()}"
                                        class="layui-input"
-                                       lay-affix="number"
-                                       step="${item.getEdit().step}" <#if item.getEdit().min??></#if>>
+                                       lay-affix="number"<#if item.getEdit().notNull?? && item.getEdit().notNull> lay-verify="required"</#if>>
+                            <#elseif item.getEdit().type?? && item.getEdit().type == 'DATE'>
+                                <input type="text" name="${item.fieldName}" class="layui-input"
+                                       id="form-${item.fieldName}"
+                                       placeholder="${item.getEdit().getPlaceholder()}"
+                                       lay-affix="clear"<#if item.getEdit().notNull?? && item.getEdit().notNull> lay-verify="required"</#if>>
                             <#else>
                                 <input type="text" name="${item.fieldName}"
                                        placeholder="${item.getEdit().getPlaceholder()}"
                                        class="layui-input"
-                                       lay-affix="clear">
+                                       lay-affix="clear"<#if item.getEdit().notNull?? && item.getEdit().notNull> lay-verify="required"</#if>>
                             </#if>
                         </div>
                     </div>
@@ -104,7 +111,23 @@
 </div>
 <script>
     layui.use(['table', 'form', 'util'], function () {
-        let table = layui.table, form = layui.form, layer = layui.layer, $ = layui.$;
+        let table = layui.table, form = layui.form, layer = layui.layer, $ = layui.$, laydate = layui.laydate;
+
+        <#list data.cols as item>
+        <#if item.getEdit().search && !item.key && item.getEdit().type?? && item.getEdit().type == 'DATE'>
+        laydate.render({
+            elem: '#search-${item.fieldName}'
+        });
+        </#if>
+        </#list>
+
+        <#list data.cols as item>
+        <#if item.getEdit().show && item.getEdit().type?? && item.getEdit().type == 'DATE'>
+        laydate.render({
+            elem: '#form-${item.fieldName}'
+        });
+        </#if>
+        </#list>
 
         // 搜索提交
         form.on('submit(table-search)', function (data) {
@@ -122,20 +145,29 @@
                 {type: 'checkbox', fixed: 'left'},
                 {type: 'numbers', fixed: 'left'},
                 <#list data.cols as item>
-                <#if item.getView().getShow()>
+                <#if item.getView().show>
                 {
                     field: '${item.fieldName}',
                     title: '${item.desc}',
                     <#if item.getView().width??>width: ${item.getView().width}, </#if>
-                    <#if item.key>hide: true,</#if>
-                    <#if item.getView().sortable>sort: true,</#if>
+                    <#if item.key>hide: true, </#if>
+                    <#if item.getView().sortable>sort: true, </#if>
+                    <#if item.getView().translatable>templet: function (d) {
+                        <#list item.getView().items as option>
+                        if (d.${item.fieldName} === '${option.value}')
+                            return '${option.label}';
+                        </#list>
+                    }, </#if>
+                    <#if !item.getView().translatable && item.field.getType().getSimpleName() == 'Date'>templet: function (d) {
+                        return d.${item.fieldName}.length > 10 ? d.${item.fieldName}.slice(0, 10) : d.${item.fieldName}
+                    }, </#if>
                 },
                 </#if>
                 </#list>
                 {field: 'operator', title: '操作', width: 110, fixed: 'right', templet: '#table-templet-operator'},
             ]],
             where: {wheres: {}},
-            url: '${contextPath}/jgradio/select/${id}',
+            url: '${contextPath}/entity/select/${id}',
             method: 'post',
             contentType: 'application/json',
             parseData: function (res) { // res 即为原始返回的数据
@@ -198,13 +230,12 @@
                 btn1: function (index, layero, that) {
                     form.submit('filter-edit-layer', function (data) {
                         let field = data.field; // 获取表单全部字段值
-
-                        fetch("${contextPath}/business/${id}/saveOrUpdateBatch", {
+                        fetch("${contextPath}/entity/save/${id}", {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json'
                             },
-                            body: JSON.stringify({data: [field]})
+                            body: JSON.stringify(field)
                         })
                             .then(response => response.json())
                             .then(res => {
@@ -230,12 +261,8 @@
         }
 
         function delRow(rows) {
-            for (let data of rows) {
-                if (data.isActive === '1')
-                    return layer.msg("已激活表不允许删除!");
-            }
             layer.confirm('确定要删除么？', {icon: 3}, function (index, layero, that) {
-                fetch("${contextPath}/business/${id}/removeBatchByIds", {
+                fetch("${contextPath}/entity/delete/${id}", {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -257,18 +284,27 @@
         }
 
         function editRow(data) {
-            if (data.isActive === '1')
-                return layer.msg("已激活表不允许编辑!");
             form.val('filter-edit-layer', {
                 <#list data.cols as item>
                 "${item.fieldName}": "",
                 </#list>
             });
-            fetch("${contextPath}/business/${id}/getById?id=" + data.id)
+            fetch("${contextPath}/entity/getById/${id}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
                 .then(response => response.json())
                 .then(res => {
                     if (res.code === 200) {
                         let data = res.data;
+                        <#list data.cols as item>
+                        <#if item.getEdit().show && item.field.getType().getSimpleName() == 'Date'>
+                        data.${item.fieldName} = data.${item.fieldName}.length > 10 ? data.${item.fieldName}.slice(0, 10) : data.${item.fieldName};
+                        </#if>
+                        </#list>
                         form.val('filter-edit-layer', data);
                         openRow();
                     } else {

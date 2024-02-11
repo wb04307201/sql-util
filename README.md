@@ -1,16 +1,18 @@
-# sql-util 实体SQL工具类
+# sql-util 实体SQL工具
 
 [![](https://jitpack.io/v/com.gitee.wb04307201/sql-util.svg)](https://jitpack.io/#com.gitee.wb04307201/sql-util)
 
 > 提供一套高效、便捷的数据库操作工具集，  
 > 包括多数据源连接池、SQL语句执行工具类、SQL构造工具以及从实体类构造SQL的工具。  
+> 亦可以通过页面快速构造web页面。  
 > 帮助开发者简化数据库操作，提高开发效率和代码质量。
 
 ## 代码示例
-1. 使用[文档在线预览](https://gitee.com/wb04307201/file-preview-spring-boot-starter)、[多平台文件存储](https://gitee.com/wb04307201/file-storage-spring-boot-starter)、[实体SQL工具类](https://gitee.com/wb04307201/sql-util)实现的[文件预览Demo](https://gitee.com/wb04307201/file-preview-demo)
-2. 使用[多平台文件存储](https://gitee.com/wb04307201/file-storage-spring-boot-starter)、[实体SQL工具类](https://gitee.com/wb04307201/sql-util)实现的[文件存储Demo](https://gitee.com/wb04307201/file-storage-demo)
-3. 使用[消息中间件](https://gitee.com/wb04307201/message-spring-boot-starter)、[实体SQL工具类](https://gitee.com/wb04307201/sql-util)实现的[消息发送代码示例](https://gitee.com/wb04307201/message-demo)
-4. 使用[动态调度](https://gitee.com/wb04307201/dynamic-schedule-spring-boot-starter)、[消息中间件](https://gitee.com/wb04307201/message-spring-boot-starter)、[动态编译加载执行工具](https://gitee.com/wb04307201/loader-util)、[实体SQL工具类](https://gitee.com/wb04307201/sql-util)实现的[在线编码、动态调度、发送钉钉群消息Demo](https://gitee.com/wb04307201/dynamic-schedule-demo)
+1. 使用[实体SQL工具](https://gitee.com/wb04307201/sql-util)实现的[实体SQL工具Demo](https://gitee.com/wb04307201/sql-util-demo)
+2. 使用[文档在线预览](https://gitee.com/wb04307201/file-preview-spring-boot-starter)、[多平台文件存储](https://gitee.com/wb04307201/file-storage-spring-boot-starter)、[实体SQL工具类](https://gitee.com/wb04307201/sql-util)实现的[文件预览Demo](https://gitee.com/wb04307201/file-preview-demo)
+3. 使用[多平台文件存储](https://gitee.com/wb04307201/file-storage-spring-boot-starter)、[实体SQL工具类](https://gitee.com/wb04307201/sql-util)实现的[文件存储Demo](https://gitee.com/wb04307201/file-storage-demo)
+4. 使用[消息中间件](https://gitee.com/wb04307201/message-spring-boot-starter)、[实体SQL工具类](https://gitee.com/wb04307201/sql-util)实现的[消息发送代码示例](https://gitee.com/wb04307201/message-demo)
+5. 使用[动态调度](https://gitee.com/wb04307201/dynamic-schedule-spring-boot-starter)、[消息中间件](https://gitee.com/wb04307201/message-spring-boot-starter)、[动态编译加载执行工具](https://gitee.com/wb04307201/loader-util)、[实体SQL工具类](https://gitee.com/wb04307201/sql-util)实现的[在线编码、动态调度、发送钉钉群消息Demo](https://gitee.com/wb04307201/dynamic-schedule-demo)
 
 | 序号 | 工具类                 | 描述             |
 |----|---------------------|----------------|
@@ -18,6 +20,7 @@
 | 2  | ExecuteSqlUtils     | sql语句执行工具类     |
 | 3  | SQL                 | SQL构造工具，执行工具   |
 | 4  | ModelSqlUtils       | 从实体类构造SQL，执行工具 |
+| 5  | EntityWeb       | 从实体类快速构造web页面  |
 
 ## 第一步 增加 JitPack 仓库
 ```xml
@@ -30,11 +33,12 @@
 ```
 
 ## 第二步 引入jar
+1.3.0版本后升级到jdk 17 SpringBoot 3.2.2
 ```xml
 <dependency>
     <groupId>com.gitee.wb04307201</groupId>
     <artifactId>sql-util</artifactId>
-    <version>1.2.17</version>
+    <version>1.3.0</version>
 </dependency>
 ```
 
@@ -176,6 +180,85 @@ public class User {
         user.setUserName("332211");
         // 更新数据
         MutilConnectionPool.run("test", conn -> ModelSqlUtils.updateSql(user).executeUpdate(conn));
+        // 可以使用 ModelSqlUtils.insertSql(user)强行插入数据
+        // 可以使用 ModelSqlUtils.updateSql(user)强行更新数据
         // 删除数据
         MutilConnectionPool.run("test", conn -> ModelSqlUtils.deleteSql(user).executeUpdate(conn));
 ```
+
+#### EntityWeb使用示例
+###### 在启动类上加上`@EnableEntityWeb`注解
+```java
+@EnableEntityWeb
+@SpringBootApplication
+public class SqlUtilDemoApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(SqlUtilDemoApplication.class, args);
+    }
+
+}
+```
+
+###### 按照需求构建实体类
+```java
+package cn.wubo.sql.util.demo;
+
+import cn.wubo.sql.util.annotations.*;
+import cn.wubo.sql.util.enums.ColumnType;
+import cn.wubo.sql.util.enums.EditType;
+import lombok.Data;
+
+import java.util.Date;
+
+@Data
+@Table(value = "test_user", desc = "用户", ds = @Ds(url = "jdbc:h2:file:./data/demo;AUTO_SERVER=TRUE", username = "sa", passowrd = ""))
+public class User {
+
+    @Key
+    @Column(value = "id")
+    private String id;
+
+    @Column(value = "user_name", desc = "用户名", type = ColumnType.VARCHAR, length = 20, edit = @Edit(notNull = true))
+    private String userName;
+
+    @Column(value = "department", desc = "部门",
+            view = @View(width = 300, translatable = true, items = {@Item(value = "1", label = "部门1"), @Item(value = "2", label = "部门2"), @Item(value = "3", label = "部门3")}),
+            edit = @Edit(type = EditType.SELECT, items = {@Item(value = "1", label = "部门1"), @Item(value = "2", label = "部门2"), @Item(value = "3", label = "部门3")}))
+    private String department;
+
+    @Column(value = "birth", desc = "生日", type = ColumnType.DATE, edit = @Edit(type = EditType.DATE))
+    private Date birth;
+
+    @Column(value = "birth1", view = @View(show = false), edit = @Edit(show = false, search = false))
+    private Date birth1;
+
+    @Column(value = "age", desc = "年龄", type = ColumnType.NUMBER, precision = 10, scale = 0, edit = @Edit(type = EditType.NUMBER))
+    private Integer age;
+
+    @Column(value = "age1", view = @View(show = false), edit = @Edit(show = false, search = false))
+    private Integer age1;
+}
+```
+
+###### 加载web页面
+```java
+@Slf4j
+@Component
+public class InitEntityWeb implements ApplicationRunner {
+
+    @Resource
+    EntityWebService entityWebService;
+
+    @Override
+    public void run(ApplicationArguments args) throws Exception {
+        // 使用给定的id和实体定义加载EntityWeb页面
+        entityWebService.build("1111", User.class);
+    }
+
+}
+```
+
+###### 通过id访问页面
+http://localhost:8080/entity/view/1111
+![img.png](img.png)

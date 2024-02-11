@@ -8,6 +8,7 @@ import cn.wubo.sql.util.exception.ModelSqlException;
 import com.alibaba.druid.DbType;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -48,6 +49,7 @@ public class ModelSqlUtils {
 
     /**
      * 生成更新SQL语句，根据标识的主键{@link @Key}更新数据
+     *
      * @param data 数据对象
      * @return SQL语句
      */
@@ -66,9 +68,18 @@ public class ModelSqlUtils {
         return sql.parse();
     }
 
+    public static <T> SQL<T> saveSql(T data) {
+        Class<T> clazz = (Class<T>) data.getClass();
+        TableModel tableModel = EntityUtils.getTable(clazz);
+        Optional<TableModel.ColumnModel> optionalCol = tableModel.getCols().stream().filter(TableModel.ColumnModel::getKey).filter(col -> EntityUtils.getValue(col.getField(), data) != null).findAny();
+        if (optionalCol.isPresent()) return updateSql(data);
+        else return insertSql(data);
+    }
+
 
     /**
      * 构造删除SQL语句，根据标识的主键{@link @Key}删除数据
+     *
      * @param data 待删除的数据对象
      * @return SQL语句
      */
@@ -104,9 +115,7 @@ public class ModelSqlUtils {
         tableModel.getCols().forEach(col -> {
             Object valObj = EntityUtils.getValue(col.getField(), data);
             if (valObj != null) {
-                if (col.getStatementCondition() == StatementCondition.EQ) sql.addWhereEQ(col.getColumnName(), valObj);
-                else if (col.getStatementCondition() == StatementCondition.UEQ)
-                    sql.addWhereUEQ(col.getColumnName(), valObj);
+                if (col.getStatementCondition() == StatementCondition.UEQ) sql.addWhereUEQ(col.getColumnName(), valObj);
                 else if (col.getStatementCondition() == StatementCondition.LIKE)
                     sql.addWhereLIKE(col.getColumnName(), valObj);
                 else if (col.getStatementCondition() == StatementCondition.LLIKE)
@@ -121,6 +130,7 @@ public class ModelSqlUtils {
                     sql.addWhereGTEQ(col.getColumnName(), valObj);
                 else if (col.getStatementCondition() == StatementCondition.LTEQ)
                     sql.addWhereLTEQ(col.getColumnName(), valObj);
+                else sql.addWhereEQ(col.getColumnName(), valObj);
             }
         });
 
@@ -141,6 +151,7 @@ public class ModelSqlUtils {
 
     /**
      * 构造函数，用于创建一个SQL对象
+     *
      * @param data 数据对象
      * @return SQL对象
      */

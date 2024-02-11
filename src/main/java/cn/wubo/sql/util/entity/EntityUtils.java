@@ -10,9 +10,11 @@ import cn.wubo.sql.util.utils.StringUtils;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class EntityUtils {
 
@@ -45,30 +47,26 @@ public class EntityUtils {
 
     private static void getFields(Class<?> clazz, List<Field> fields) {
         if (clazz != null) {
-            fields.addAll(Arrays.stream(clazz.getDeclaredFields()).filter(field -> !field.isSynthetic()).filter(field -> !(Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(field.getModifiers()))).collect(Collectors.toList()));
+            fields.addAll(Arrays.stream(clazz.getDeclaredFields()).filter(field -> !field.isSynthetic()).filter(field -> !(Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(field.getModifiers()))).toList());
             getFields(clazz.getSuperclass(), fields);
         }
     }
 
     /**
-     * 对值的处理
+     * 获取字段的值
      *
      * @param field 字段
-     * @param data  数据
-     * @param <T>   数据类型
-     * @return 处理后的值
+     * @param data  数据对象
+     * @return 字段的值
      */
     public static <T> Object getValue(Field field, T data) {
         try {
             field.setAccessible(true);
             Object obj = field.get(data);
             if (obj != null) {
-                // 如果值是java.sql.Timestamp类型，则格式化为"yyyy-MM-dd HH:mm:ss.SSS"格式
-                if (obj instanceof java.sql.Timestamp)
-                    return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(obj);
-                    // 如果值是Date类型，则格式化为"yyyy-MM-dd"格式
+                if (obj instanceof Timestamp) return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(obj);
                 else if (obj instanceof Date) return new SimpleDateFormat("yyyy-MM-dd").format(obj);
-                    // 其他情况下直接返回值
+                else if (String.valueOf(obj).isEmpty()) return null;
                 else return obj;
             } else {
                 return null;
@@ -77,4 +75,29 @@ public class EntityUtils {
             throw new ModelSqlException(e);
         }
     }
+
+    public static Object getValue(TableModel.ColumnModel col, Object obj) {
+        if (obj != null && col.getField().getType() != obj.getClass()) {
+            if (col.getField().getType() == Integer.class) return Integer.valueOf(obj.toString());
+            else if (col.getField().getType() == Double.class) return Double.valueOf(obj.toString());
+            else if (col.getField().getType() == Float.class) return Float.valueOf(obj.toString());
+            else if (col.getField().getType() == BigDecimal.class) return new BigDecimal(obj.toString());
+            else if (col.getField().getType() == Date.class) {
+                try {
+                    return new SimpleDateFormat("yyyy-MM-dd").parse(obj.toString());
+                } catch (ParseException e) {
+                    throw new ModelSqlException(e);
+                }
+            } else if (col.getField().getType() == Timestamp.class) {
+                try {
+                    return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").parse(obj.toString());
+                } catch (ParseException e) {
+                    throw new ModelSqlException(e);
+                }
+            } else return obj;
+        } else {
+            return obj;
+        }
+    }
+
 }
