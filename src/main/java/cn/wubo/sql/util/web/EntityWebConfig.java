@@ -20,7 +20,7 @@ import java.util.Map;
 public class EntityWebConfig {
 
     @Bean
-    public EntityWebService sqlWebService() {
+    public EntityWebService entityWebService() {
         return new EntityWebService();
     }
 
