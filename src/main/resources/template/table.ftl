@@ -32,12 +32,16 @@
                         <#elseif item.getEdit().type?? && item.getEdit().type == 'NUMBER'>
                             <input type="text" name="${item.fieldName}" placeholder="${item.getEdit().placeholder}"
                                    class="layui-input"
-                                   lay-affix="number">
+                                   lay-affix="number" lay-precision="${item.scale}">
                         <#elseif item.getEdit().type?? && item.getEdit().type == 'DATE'>
                             <input type="text" name="${item.fieldName}" class="layui-input"
                                    id="search-${item.fieldName}"
                                    placeholder="${item.getEdit().placeholder}"
                                    lay-affix="clear">
+                        <#elseif item.getEdit().type?? && item.getEdit().type == 'CHECKBOX'>
+                            <input type="checkbox" name="${item.fieldName}" lay-skin="switch" lay-filter="switchTest"
+                                   title="${item.getEdit().items[0].label}|${item.getEdit().items[1].label}"
+                                   value="${item.getEdit().items[0].value}">
                         <#else>
                             <input type="text" name="${item.fieldName}" placeholder="${item.getEdit().placeholder}"
                                    class="layui-input"
@@ -90,12 +94,18 @@
                                 <input type="text" name="${item.fieldName}"
                                        placeholder="${item.getEdit().getPlaceholder()}"
                                        class="layui-input"
-                                       lay-affix="number"<#if item.getEdit().notNull?? && item.getEdit().notNull> lay-verify="required"</#if>>
+                                       lay-affix="number"<#if item.getEdit().notNull?? && item.getEdit().notNull> lay-verify="required"</#if>
+                                       lay-precision="${item.scale}">
                             <#elseif item.getEdit().type?? && item.getEdit().type == 'DATE'>
                                 <input type="text" name="${item.fieldName}" class="layui-input"
                                        id="form-${item.fieldName}"
                                        placeholder="${item.getEdit().getPlaceholder()}"
                                        lay-affix="clear"<#if item.getEdit().notNull?? && item.getEdit().notNull> lay-verify="required"</#if>>
+                            <#elseif item.getEdit().type?? && item.getEdit().type == 'CHECKBOX'>
+                                <input type="checkbox" name="${item.fieldName}" lay-skin="switch"
+                                       lay-filter="switchTest"
+                                       title="${item.getEdit().items[0].label}|${item.getEdit().items[1].label}"<#if item.getEdit().notNull?? && item.getEdit().notNull> lay-verify="required"</#if>
+                                       value="${item.getEdit().items[0].value}">
                             <#else>
                                 <input type="text" name="${item.fieldName}"
                                        placeholder="${item.getEdit().getPlaceholder()}"
@@ -132,6 +142,11 @@
         // 搜索提交
         form.on('submit(table-search)', function (data) {
             var field = data.field; // 获得表单字段
+            <#list data.cols as item>
+            <#if item.getEdit().type?? && item.getEdit().type == 'CHECKBOX'>
+            if (field.${item.fieldName} != '${item.getEdit().items[0].value}') field.${item.fieldName} = '${item.getEdit().items[1].value}'
+            </#if>
+            </#list>
             // 执行搜索重载
             table.reload('table', {
                 where: {wheres: field} // 搜索的字段
@@ -157,9 +172,10 @@
                         if (d.${item.fieldName} === '${option.value}')
                             return '${option.label}';
                         </#list>
+                        return ''
                     }, </#if>
                     <#if !item.getView().translatable && item.field.getType().getSimpleName() == 'Date'>templet: function (d) {
-                        return d.${item.fieldName}.length > 10 ? d.${item.fieldName}.slice(0, 10) : d.${item.fieldName}
+                        return d.${item.fieldName} ? (d.${item.fieldName}.length > 10 ? d.${item.fieldName}.slice(0, 10) : d.${item.fieldName}) : ''
                     }, </#if>
                 },
                 </#if>
@@ -230,6 +246,11 @@
                 btn1: function (index, layero, that) {
                     form.submit('filter-edit-layer', function (data) {
                         let field = data.field; // 获取表单全部字段值
+                        <#list data.cols as item>
+                        <#if item.getEdit().type?? && item.getEdit().type == 'CHECKBOX'>
+                        if (field.${item.fieldName} != '${item.getEdit().items[0].value}') field.${item.fieldName} = '${item.getEdit().items[1].value}'
+                        </#if>
+                        </#list>
                         fetch("${contextPath}/entity/save/${id}", {
                             method: 'POST',
                             headers: {
@@ -302,7 +323,10 @@
                         let data = res.data;
                         <#list data.cols as item>
                         <#if item.getEdit().show && item.field.getType().getSimpleName() == 'Date'>
-                        data.${item.fieldName} = data.${item.fieldName}.length > 10 ? data.${item.fieldName}.slice(0, 10) : data.${item.fieldName};
+                        data.${item.fieldName} = data.${item.fieldName} ? (data.${item.fieldName}.length > 10 ? data.${item.fieldName}.slice(0, 10) : data.${item.fieldName}) : '';
+                        </#if>
+                        <#if item.getEdit().type?? && item.getEdit().type == 'CHECKBOX'>
+                        data.${item.fieldName} = data.${item.fieldName} === '${item.getEdit().items[0].value}'
                         </#if>
                         </#list>
                         form.val('filter-edit-layer', data);

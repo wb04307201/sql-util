@@ -20,12 +20,12 @@ import java.util.Map;
 public class EntityWebConfig {
 
     @Bean
-    public EntityWebService sqlWebService() {
+    public EntityWebService entityWebService() {
         return new EntityWebService();
     }
 
     @Bean("wb04307201SqlWebRouter")
-    public RouterFunction<ServerResponse> sqlWebRouter(EntityWebService entityWebService) {
+    public RouterFunction<ServerResponse> entityWebRouter(EntityWebService entityWebService) {
         return RouterFunctions.route().GET("/entity/view/{id}", request -> {
             String id = request.pathVariable("id");
             Map<String, Object> map = new HashMap<>();
