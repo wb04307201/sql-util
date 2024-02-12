@@ -159,7 +159,7 @@
                         </#list>
                     }, </#if>
                     <#if !item.getView().translatable && item.field.getType().getSimpleName() == 'Date'>templet: function (d) {
-                        return d.${item.fieldName}.length > 10 ? d.${item.fieldName}.slice(0, 10) : d.${item.fieldName}
+                        return d.${item.fieldName} ? (d.${item.fieldName}.length > 10 ? d.${item.fieldName}.slice(0, 10) : d.${item.fieldName}) : ''
                     }, </#if>
                 },
                 </#if>
@@ -302,7 +302,7 @@
                         let data = res.data;
                         <#list data.cols as item>
                         <#if item.getEdit().show && item.field.getType().getSimpleName() == 'Date'>
-                        data.${item.fieldName} = data.${item.fieldName}.length > 10 ? data.${item.fieldName}.slice(0, 10) : data.${item.fieldName};
+                        data.${item.fieldName} = data.${item.fieldName} ? (data.${item.fieldName}.length > 10 ? data.${item.fieldName}.slice(0, 10) : data.${item.fieldName}) : '';
                         </#if>
                         </#list>
                         form.val('filter-edit-layer', data);
