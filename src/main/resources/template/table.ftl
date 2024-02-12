@@ -32,7 +32,7 @@
                         <#elseif item.getEdit().type?? && item.getEdit().type == 'NUMBER'>
                             <input type="text" name="${item.fieldName}" placeholder="${item.getEdit().placeholder}"
                                    class="layui-input"
-                                   lay-affix="number">
+                                   lay-affix="number" lay-precision="${item.scale}">
                         <#elseif item.getEdit().type?? && item.getEdit().type == 'DATE'>
                             <input type="text" name="${item.fieldName}" class="layui-input"
                                    id="search-${item.fieldName}"
@@ -90,7 +90,8 @@
                                 <input type="text" name="${item.fieldName}"
                                        placeholder="${item.getEdit().getPlaceholder()}"
                                        class="layui-input"
-                                       lay-affix="number"<#if item.getEdit().notNull?? && item.getEdit().notNull> lay-verify="required"</#if>>
+                                       lay-affix="number"<#if item.getEdit().notNull?? && item.getEdit().notNull> lay-verify="required"</#if>
+                                       lay-precision="${item.scale}">
                             <#elseif item.getEdit().type?? && item.getEdit().type == 'DATE'>
                                 <input type="text" name="${item.fieldName}" class="layui-input"
                                        id="form-${item.fieldName}"
@@ -157,6 +158,7 @@
                         if (d.${item.fieldName} === '${option.value}')
                             return '${option.label}';
                         </#list>
+                        return ''
                     }, </#if>
                     <#if !item.getView().translatable && item.field.getType().getSimpleName() == 'Date'>templet: function (d) {
                         return d.${item.fieldName} ? (d.${item.fieldName}.length > 10 ? d.${item.fieldName}.slice(0, 10) : d.${item.fieldName}) : ''
