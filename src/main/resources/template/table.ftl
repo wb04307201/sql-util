@@ -32,7 +32,7 @@
                         <#elseif item.getEdit().type?? && item.getEdit().type == 'NUMBER'>
                             <input type="text" name="${item.fieldName}" placeholder="${item.getEdit().placeholder}"
                                    class="layui-input"
-                                   lay-affix="number" lay-precision="${item.scale}">
+                                   lay-affix="number">
                         <#elseif item.getEdit().type?? && item.getEdit().type == 'DATE'>
                             <input type="text" name="${item.fieldName}" class="layui-input"
                                    id="search-${item.fieldName}"
@@ -40,7 +40,7 @@
                                    lay-affix="clear">
                         <#elseif item.getEdit().type?? && item.getEdit().type == 'CHECKBOX'>
                             <input type="checkbox" name="${item.fieldName}" lay-skin="switch" lay-filter="switchTest"
-                                   title="${item.getEdit().items[0].label}|${item.getEdit().items[1].label}"
+                                   title="${item.getEdit().items[0].label}|全部"
                                    value="${item.getEdit().items[0].value}">
                         <#else>
                             <input type="text" name="${item.fieldName}" placeholder="${item.getEdit().placeholder}"
@@ -144,7 +144,8 @@
             var field = data.field; // 获得表单字段
             <#list data.cols as item>
             <#if item.getEdit().type?? && item.getEdit().type == 'CHECKBOX'>
-            if (field.${item.fieldName} != '${item.getEdit().items[0].value}') field.${item.fieldName} = '${item.getEdit().items[1].value}'
+            if (field.${item.fieldName} == '${item.getEdit().items[0].value}') field.${item.fieldName} = '${item.getEdit().items[0].value}'
+            else field.${item.fieldName} = ''
             </#if>
             </#list>
             // 执行搜索重载
