@@ -40,7 +40,7 @@
                                    lay-affix="clear">
                         <#elseif item.getEdit().type?? && item.getEdit().type == 'CHECKBOX'>
                             <input type="checkbox" name="${item.fieldName}" lay-skin="switch" lay-filter="switchTest"
-                                   title="${item.getEdit().items[0].label}|${item.getEdit().items[1].label}"
+                                   title="${item.getEdit().items[0].label}|全部"
                                    value="${item.getEdit().items[0].value}">
                         <#else>
                             <input type="text" name="${item.fieldName}" placeholder="${item.getEdit().placeholder}"
