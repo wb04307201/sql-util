@@ -32,7 +32,7 @@
                         <#elseif item.getEdit().type?? && item.getEdit().type == 'NUMBER'>
                             <input type="text" name="${item.fieldName}" placeholder="${item.getEdit().placeholder}"
                                    class="layui-input"
-                                   lay-affix="number" lay-precision="${item.scale}">
+                                   lay-affix="number">
                         <#elseif item.getEdit().type?? && item.getEdit().type == 'DATE'>
                             <input type="text" name="${item.fieldName}" class="layui-input"
                                    id="search-${item.fieldName}"
