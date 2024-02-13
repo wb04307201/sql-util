@@ -66,7 +66,7 @@ public class EntityUtils {
     private static void getFields(Class<?> clazz, List<Field> fields) {
         if (clazz != null) {
             // 获取指定类的所有非静态非final字段
-            fields.addAll(Arrays.stream(clazz.getDeclaredFields()).filter(field -> !field.isSynthetic()).filter(field -> !(Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(field.getModifiers()))).toList());
+            fields.addAll(Arrays.stream(clazz.getDeclaredFields()).filter(field -> !field.isSynthetic()).filter(field -> !(Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(field.getModifiers()))).collect(Collectors.toList()));
             // 递归获取父类的所有非静态非final字段
             getFields(clazz.getSuperclass(), fields);
         }
