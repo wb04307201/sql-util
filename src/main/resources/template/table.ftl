@@ -144,7 +144,8 @@
             var field = data.field; // 获得表单字段
             <#list data.cols as item>
             <#if item.getEdit().type?? && item.getEdit().type == 'CHECKBOX'>
-            if (field.${item.fieldName} != '${item.getEdit().items[0].value}') field.${item.fieldName} = '${item.getEdit().items[1].value}'
+            if (field.${item.fieldName} == '${item.getEdit().items[0].value}') field.${item.fieldName} = '${item.getEdit().items[0].value}'
+            else field.${item.fieldName} = ''
             </#if>
             </#list>
             // 执行搜索重载
