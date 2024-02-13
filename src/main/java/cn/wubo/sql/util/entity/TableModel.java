@@ -8,6 +8,7 @@ import cn.wubo.sql.util.enums.ColumnType;
 import cn.wubo.sql.util.enums.EditType;
 import cn.wubo.sql.util.enums.GenerationType;
 import cn.wubo.sql.util.enums.StatementCondition;
+import cn.wubo.sql.util.exception.EntityWebException;
 import cn.wubo.sql.util.utils.StringUtils;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -136,7 +137,6 @@ public class TableModel {
         }
 
         @Data
-        @AllArgsConstructor
         public static class EditModel {
             private Boolean show;
             private EditType type;
@@ -144,6 +144,17 @@ public class TableModel {
             private String placeholder;
             private List<ItemModel> items;
             private Boolean search;
+
+            public EditModel(Boolean show, EditType type, Boolean notNull, String placeholder, List<ItemModel> items, Boolean search) {
+                if(type == EditType.SELECT && (items == null || items.isEmpty())) throw new EntityWebException("type为SELECT时，items不应为空！");
+                if(type == EditType.CHECKBOX && (items == null || items.size() != 2)) throw new EntityWebException("type为CHECKBOX时，items应包含2个元素！");
+                this.show = show;
+                this.type = type;
+                this.notNull = notNull;
+                this.placeholder = placeholder;
+                this.items = items;
+                this.search = search;
+            }
         }
 
         @Data
