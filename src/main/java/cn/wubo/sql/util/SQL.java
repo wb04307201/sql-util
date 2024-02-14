@@ -402,7 +402,15 @@ public class SQL<T> {
         }
     }
 
+    /**
+     * 解析SQL语句
+     * @return SQL对象
+     */
     public SQL<T> parse() {
+        if (this.clazz != null) {
+            TableModel tableModel = EntityUtils.getTable(this.clazz);
+            transDbtype(tableModel.getDs().getUrl());
+        }
         atomicInteger = new AtomicInteger(0);
         switch (statementType) {
             case SELECT:
@@ -426,6 +434,18 @@ public class SQL<T> {
             default:
         }
         return this;
+    }
+
+    /**
+     * 根据数据库连接URL判断数据库类型
+     * @param url 数据库连接URL
+     */
+    private void transDbtype(String url) {
+        if (url != null && !url.isEmpty()) {
+            if (url.startsWith("jdbc:h2:")) dbType = DbType.h2; // 如果URL以jdbc:h2:开头，则数据库类型为h2
+            else if (url.startsWith("jdbc:mysql:")) dbType = DbType.mysql; // 如果URL以jdbc:mysql:开头，则数据库类型为mysql
+            else if (url.startsWith("jdbc:postgresql:")) dbType = DbType.postgresql; // 如果URL以jdbc:postgresql:开头，则数据库类型为postgresql
+        }
     }
 
     /**
