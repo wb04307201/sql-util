@@ -1,5 +1,6 @@
 package cn.wubo.sql.util.web;
 
+import cn.wubo.sql.util.exception.EntityWebException;
 import cn.wubo.sql.util.result.Result;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
@@ -64,7 +65,7 @@ public class EntityWebConfig {
             template.process(params, sw);
             return sw.toString();
         } catch (TemplateException | IOException e) {
-            throw new RuntimeException(e.getMessage(), e);
+            throw new EntityWebException(e.getMessage(), e);
         }
     }
 }

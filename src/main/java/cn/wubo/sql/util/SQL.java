@@ -402,7 +402,15 @@ public class SQL<T> {
         }
     }
 
+    /**
+     * 解析SQL语句
+     * @return SQL对象
+     */
     public SQL<T> parse() {
+        if (this.clazz != null) {
+            TableModel tableModel = EntityUtils.getTable(this.clazz);
+            transDbtype(tableModel.getDs().getUrl());
+        }
         atomicInteger = new AtomicInteger(0);
         switch (statementType) {
             case SELECT:
@@ -426,6 +434,18 @@ public class SQL<T> {
             default:
         }
         return this;
+    }
+
+    /**
+     * 根据数据库连接URL判断数据库类型
+     * @param url 数据库连接URL
+     */
+    private void transDbtype(String url) {
+        if (url != null && !url.isEmpty()) {
+            if (url.startsWith("jdbc:h2:")) dbType = DbType.h2; // 如果URL以jdbc:h2:开头，则数据库类型为h2
+            else if (url.startsWith("jdbc:mysql:")) dbType = DbType.mysql; // 如果URL以jdbc:mysql:开头，则数据库类型为mysql
+            else if (url.startsWith("jdbc:postgresql:")) dbType = DbType.postgresql; // 如果URL以jdbc:postgresql:开头，则数据库类型为postgresql
+        }
     }
 
     /**
@@ -559,25 +579,34 @@ public class SQL<T> {
      */
     private void createSQL() {
         // 初始化StringBuilder和List
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder().append("create table ");
         // 获取表信息
         TableModel tableModel = EntityUtils.getTable(clazz);
-
-        // 添加表注释
-        sqls.add(String.format("comment on table %s is '%s'", tableModel.getName(), tableModel.getDesc()));
-
-        // 构建创建表的SQL语句
-        sb.append("create table ").append(tableModel.getName()).append(" (");
-        tableModel.getCols().forEach(col -> {
-            sb.append(col.getColumnName()).append(" ").append(col.getDefinition()).append(",");
-            // 添加列注释
-            sqls.add(String.format("comment on column %s.%s is '%s'", tableModel.getName(), col.getColumnName(), col.getDesc()));
-        });
-
-        // 删除最后一个逗号并添加表结束符号
-        int length = sb.length();
-        sb.delete(length - 1, length).append(")");
-        sqls.add(0, sb.toString());
+        if (dbType == DbType.h2 || dbType == DbType.postgresql) {
+            // 添加表注释
+            sqls.add(String.format("comment on table %s is '%s'", tableModel.getName(), tableModel.getDesc()));
+            sb.append(tableModel.getName()).append(" (");
+            tableModel.getCols().forEach(col -> {
+                sb.append(col.getColumnName()).append(" ").append(col.getDefinition()).append(",");
+                // 添加列注释
+                sqls.add(String.format("comment on column %s.%s is '%s'", tableModel.getName(), col.getColumnName(), col.getDesc()));
+            });
+            int length = sb.length();
+            sb.delete(length - 1, length).append(")");
+            sqls.add(0, sb.toString());
+        } else if (dbType == DbType.mysql) {
+            sb.append(tableModel.getName()).append(" (");
+            tableModel.getCols().forEach(col -> sb.append(col.getColumnName()).append(" ").append(col.getDefinition()).append(" null comment '").append(col.getDesc()).append("',"));
+            int length = sb.length();
+            sb.delete(length - 1, length).append(")").append(" comment '").append(tableModel.getDesc()).append("'");
+            sqls.add(0, sb.toString());
+        } else {
+            sb.append(tableModel.getName()).append(" (");
+            tableModel.getCols().forEach(col -> sb.append(col.getColumnName()).append(" ").append(col.getDefinition()).append(","));
+            int length = sb.length();
+            sb.delete(length - 1, length).append(")");
+            sqls.add(0, sb.toString());
+        }
     }
 
     /**
