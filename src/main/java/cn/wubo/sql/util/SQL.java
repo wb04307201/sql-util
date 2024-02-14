@@ -559,25 +559,34 @@ public class SQL<T> {
      */
     private void createSQL() {
         // 初始化StringBuilder和List
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder().append("create table ");
         // 获取表信息
         TableModel tableModel = EntityUtils.getTable(clazz);
-
-        // 添加表注释
-        sqls.add(String.format("comment on table %s is '%s'", tableModel.getName(), tableModel.getDesc()));
-
-        // 构建创建表的SQL语句
-        sb.append("create table ").append(tableModel.getName()).append(" (");
-        tableModel.getCols().forEach(col -> {
-            sb.append(col.getColumnName()).append(" ").append(col.getDefinition()).append(",");
-            // 添加列注释
-            sqls.add(String.format("comment on column %s.%s is '%s'", tableModel.getName(), col.getColumnName(), col.getDesc()));
-        });
-
-        // 删除最后一个逗号并添加表结束符号
-        int length = sb.length();
-        sb.delete(length - 1, length).append(")");
-        sqls.add(0, sb.toString());
+        if (dbType == DbType.h2 || dbType == DbType.postgresql || dbType == DbType.oracle) {
+            // 添加表注释
+            sqls.add(String.format("comment on table %s is '%s'", tableModel.getName(), tableModel.getDesc()));
+            sb.append(tableModel.getName()).append(" (");
+            tableModel.getCols().forEach(col -> {
+                sb.append(col.getColumnName()).append(" ").append(col.getDefinition()).append(",");
+                // 添加列注释
+                sqls.add(String.format("comment on column %s.%s is '%s'", tableModel.getName(), col.getColumnName(), col.getDesc()));
+            });
+            int length = sb.length();
+            sb.delete(length - 1, length).append(")");
+            sqls.add(0, sb.toString());
+        } else if (dbType == DbType.mysql) {
+            sb.append(tableModel.getName()).append(" (");
+            tableModel.getCols().forEach(col -> sb.append(col.getColumnName()).append(" ").append(col.getDefinition()).append(" null comment '").append(col.getDesc()).append("',"));
+            int length = sb.length();
+            sb.delete(length - 1, length).append(")").append(" comment '").append(tableModel.getDesc()).append("'");
+            sqls.add(0, sb.toString());
+        } else {
+            sb.append(tableModel.getName()).append(" (");
+            tableModel.getCols().forEach(col -> sb.append(col.getColumnName()).append(" ").append(col.getDefinition()).append(","));
+            int length = sb.length();
+            sb.delete(length - 1, length).append(")");
+            sqls.add(0, sb.toString());
+        }
     }
 
     /**
