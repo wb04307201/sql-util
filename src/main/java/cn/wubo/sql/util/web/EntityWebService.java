@@ -20,9 +20,11 @@ public class EntityWebService {
 
     private static Map<String, Class<?>> classMap = new ConcurrentHashMap<>();
 
+    private static final String MISS_ID = "未找到id为%s的类定义";
+
     public TableModel view(String id) {
         if (classMap.containsKey(id)) return EntityUtils.getTable(classMap.get(id));
-        else throw new EntityWebException("未找到id为" + id + "的类定义");
+        else throw new EntityWebException(String.format(MISS_ID, id));
     }
 
     public void build(String id, Class<?> clazz) {
@@ -43,7 +45,7 @@ public class EntityWebService {
             TableModel tableModel = EntityUtils.getTable(clazz);
             String md5 = Arrays.toString(DigestUtils.md5Digest(tableModel.getDs().toString().getBytes()));
             return MutilConnectionPool.run(md5, conn -> ModelSqlUtils.selectSql(JSON.parseObject(JSONObject.toJSONString(params.getOrDefault("wheres", new HashMap<String, Object>())), clazz)).executeQuery(conn));
-        } else throw new EntityWebException("未找到id为" + id + "的类定义");
+        } else throw new EntityWebException(String.format(MISS_ID, id));
     }
 
     public Object save(String id, Map<String, Object> params) {
@@ -52,7 +54,7 @@ public class EntityWebService {
             TableModel tableModel = EntityUtils.getTable(clazz);
             String md5 = Arrays.toString(DigestUtils.md5Digest(tableModel.getDs().toString().getBytes()));
             return MutilConnectionPool.run(md5, conn -> ModelSqlUtils.saveSql(JSON.parseObject(JSONObject.toJSONString(params), clazz)).executeUpdate(conn));
-        } else throw new EntityWebException("未找到id为" + id + "的类定义");
+        } else throw new EntityWebException(String.format(MISS_ID, id));
     }
 
     public Object delete(String id, Map<String, Object> params) {
@@ -70,7 +72,7 @@ public class EntityWebService {
             } catch (SQLException e) {
                 throw new EntityWebException(e.getMessage(), e);
             }
-        } else throw new EntityWebException("未找到id为" + id + "的类定义");
+        } else throw new EntityWebException(String.format(MISS_ID, id));
     }
 
     public Object getById(String id, Map<String, Object> params) {
@@ -86,7 +88,7 @@ public class EntityWebService {
                      NoSuchMethodException e) {
                 throw new EntityWebException(e.getMessage(), e);
             }
-        } else throw new EntityWebException("未找到id为" + id + "的类定义");
+        } else throw new EntityWebException(String.format(MISS_ID, id));
     }
 
 }
