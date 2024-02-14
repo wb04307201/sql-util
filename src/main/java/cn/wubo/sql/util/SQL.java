@@ -582,7 +582,7 @@ public class SQL<T> {
         StringBuilder sb = new StringBuilder().append("create table ");
         // 获取表信息
         TableModel tableModel = EntityUtils.getTable(clazz);
-        if (dbType == DbType.h2 || dbType == DbType.postgresql || dbType == DbType.oracle) {
+        if (dbType == DbType.h2 || dbType == DbType.postgresql) {
             // 添加表注释
             sqls.add(String.format("comment on table %s is '%s'", tableModel.getName(), tableModel.getDesc()));
             sb.append(tableModel.getName()).append(" (");
