@@ -122,6 +122,7 @@ public class EntityUtils {
         if (obj != null && col.getField().getType() != obj.getClass()) {
             // 如果对象的类型与列的类型不一致，则进行类型转换
             if (col.getField().getType() == Integer.class) return Integer.valueOf(obj.toString());
+            else if (col.getField().getType() == Long.class) return Long.valueOf(obj.toString());
             else if (col.getField().getType() == Double.class) return Double.valueOf(obj.toString());
             else if (col.getField().getType() == Float.class) return Float.valueOf(obj.toString());
             else if (col.getField().getType() == BigDecimal.class) return new BigDecimal(obj.toString());
