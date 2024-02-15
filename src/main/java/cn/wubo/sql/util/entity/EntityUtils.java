@@ -15,7 +15,6 @@ import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class EntityUtils {
 
@@ -55,7 +54,7 @@ public class EntityUtils {
     private static List<TableModel.ColumnModel> transToColumns(Class<?> clazz) {
         List<Field> fields = new ArrayList<>();
         getFields(clazz, fields);
-        return fields.stream().map(TableModel.ColumnModel::new).sorted(Comparator.comparing(TableModel.ColumnModel::getSort)).collect(Collectors.toList());
+        return fields.stream().map(TableModel.ColumnModel::new).sorted(Comparator.comparing(TableModel.ColumnModel::getSort)).toList();
     }
 
     /**
@@ -66,7 +65,7 @@ public class EntityUtils {
     private static void getFields(Class<?> clazz, List<Field> fields) {
         if (clazz != null) {
             // 获取指定类的所有非静态非final字段
-            fields.addAll(Arrays.stream(clazz.getDeclaredFields()).filter(field -> !field.isSynthetic()).filter(field -> !(Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(field.getModifiers()))).collect(Collectors.toList()));
+            fields.addAll(Arrays.stream(clazz.getDeclaredFields()).filter(field -> !field.isSynthetic()).filter(field -> !(Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(field.getModifiers()))).toList());
             // 递归获取父类的所有非静态非final字段
             getFields(clazz.getSuperclass(), fields);
         }
@@ -122,7 +121,8 @@ public class EntityUtils {
     public static Object getValue(TableModel.ColumnModel col, Object obj) {
         if (obj != null && col.getField().getType() != obj.getClass()) {
             // 如果对象的类型与列的类型不一致，则进行类型转换
-            if (col.getField().getType() == Integer.class) return Integer.valueOf(obj.toString());
+            if (col.getField().getType() == Integer.class) return Integer.valueOf(subZeroAndDot(obj.toString()));
+            else if (col.getField().getType() == Long.class) return Long.valueOf(subZeroAndDot(obj.toString()));
             else if (col.getField().getType() == Double.class) return Double.valueOf(obj.toString());
             else if (col.getField().getType() == Float.class) return Float.valueOf(obj.toString());
             else if (col.getField().getType() == BigDecimal.class) return new BigDecimal(obj.toString());
@@ -146,5 +146,4 @@ public class EntityUtils {
             return obj;
         }
     }
-
 }
