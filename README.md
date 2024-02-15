@@ -43,7 +43,7 @@
 <dependency>
     <groupId>com.gitee.wb04307201</groupId>
     <artifactId>sql-util</artifactId>
-    <version>1.3.3</version>
+    <version>1.3.4</version>
 </dependency>
 ```
 
