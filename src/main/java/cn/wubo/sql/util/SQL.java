@@ -634,13 +634,18 @@ public class SQL<T> {
         return this;
     }
 
-    public SQL<T> dialect(Connection conn) {
-        try {
-            this.dbType = Objects.requireNonNull(DriverNameType.getDriverNameType(conn.getMetaData().getDriverName())).dbType;
-        } catch (SQLException e) {
-            throw new SQLRuntimeException(e);
+    /**
+     * 获取数据库类型
+     * @param conn 数据库连接对象
+     */
+    public void dialect(Connection conn) {
+        if (this.dbType == null) {
+            try {
+                this.dbType = Objects.requireNonNull(DriverNameType.gettMetaDriverNameType(conn.getMetaData().getDriverName())).dbType;
+            } catch (SQLException e) {
+                throw new SQLRuntimeException(e);
+            }
         }
-        return this;
     }
 
     /**
@@ -682,7 +687,8 @@ public class SQL<T> {
         // 检查是否是新增、更新、删除模式
         if (statementType != StatementType.INSERT && statementType != StatementType.UPDATE && statementType != StatementType.DELETE)
             throw new SQLRuntimeException("非新增、更新、删除模式，不能调用executeUpdate方法！");
-
+        dialect(connection);
+        parse();
         // 执行更新操作
         return ExecuteSqlUtils.executeUpdate(connection, this.sqls.get(0), this.params);
     }
@@ -696,7 +702,11 @@ public class SQL<T> {
     public Boolean isTableExists(Connection connection) {
         // 获取表信息
         TableModel tableModel = EntityUtils.getTable(clazz);
-        return ExecuteSqlUtils.isTableExists(connection, tableModel.getName());
+        String tableName = tableModel.getName();
+        dialect(connection);
+        if (dbType.equals(DbType.h2) || dbType.equals(DbType.dm)) tableName = tableName.toUpperCase();
+        else tableName = tableName.toLowerCase();
+        return ExecuteSqlUtils.isTableExists(connection, tableName);
     }
 
     /**
@@ -707,6 +717,8 @@ public class SQL<T> {
      */
     public int createTable(Connection connection) {
         if (statementType != StatementType.CREATE) throw new SQLRuntimeException("非建表模式，不能调用createTable方法！");
+        dialect(connection);
+        parse();
         return ExecuteSqlUtils.executeUpdate(connection, this.sqls);
     }
 
@@ -718,6 +730,8 @@ public class SQL<T> {
      */
     public int dropTable(Connection connection) {
         if (statementType != StatementType.DROP) throw new SQLRuntimeException("非删表模式，不能调用dropTable方法！");
+        dialect(connection);
+        parse();
         return ExecuteSqlUtils.executeUpdate(connection, this.sqls.get(0));
     }
 

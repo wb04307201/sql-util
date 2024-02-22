@@ -43,7 +43,7 @@
 <dependency>
     <groupId>com.gitee.wb04307201</groupId>
     <artifactId>sql-util</artifactId>
-    <version>1.3.4</version>
+    <version>1.3.5</version>
 </dependency>
 ```
 
@@ -146,18 +146,18 @@ public class User {
         // 判断表是否存在
         if(Boolean.TRUE.equals(MutilConnectionPool.run("test",conn -> userSQL.isTableExists(conn)))){
             // 删除表
-            MutilConnectionPool.run("test",conn -> userSQL.drop().parse().dropTable(conn));
+            MutilConnectionPool.run("test",conn -> userSQL.drop().dropTable(conn));
         }
         // 创建表
-        MutilConnectionPool.run("test",conn -> userSQL.create().parse().createTable(conn));
+        MutilConnectionPool.run("test",conn -> userSQL.create().createTable(conn));
         // 插入数据
-        MutilConnectionPool.run("test",conn -> userSQL.insert().addSet("user_name","11111").parse().executeUpdate(conn));
+        MutilConnectionPool.run("test",conn -> userSQL.insert().addSet("user_name","11111").executeUpdate(conn));
         // 更新数据
-        MutilConnectionPool.run("test",conn -> userSQL.update().addSet("user_name","22222").addWhereEQ("user_name","11111").parse().executeUpdate(conn));
+        MutilConnectionPool.run("test",conn -> userSQL.update().addSet("user_name","22222").addWhereEQ("user_name","11111").executeUpdate(conn));
         // 查询数据
-        List<User> userList = MutilConnectionPool.run("test",conn -> userSQL.select().addWhereEQ("user_name","22222").parse().executeQuery(conn));
+        List<User> userList = MutilConnectionPool.run("test",conn -> userSQL.select().addWhereEQ("user_name","22222").executeQuery(conn));
         // 删除数据
-        MutilConnectionPool.run("test",conn -> userSQL.delete().addWhereEQ("user_name","22222").parse().executeUpdate(conn));
+        MutilConnectionPool.run("test",conn -> userSQL.delete().addWhereEQ("user_name","22222").executeUpdate(conn));
 ```
 
 #### ModelSqlUtils使用示例

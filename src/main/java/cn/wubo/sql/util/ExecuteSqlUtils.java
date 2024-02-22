@@ -229,14 +229,7 @@ public class ExecuteSqlUtils {
      * @return 表是否存在
      */
     public static Boolean isTableExists(Connection connection, String tableName) {
-        try {
-            String driverName = connection.getMetaData().getDriverName();
-            if ("H2 JDBC Driver".equals(driverName)) tableName = tableName.toUpperCase();
-            else tableName = tableName.toLowerCase();
-            return isTableExists(connection, null, null, tableName, new String[]{"TABLE"});
-        } catch (SQLException e) {
-            throw new ExecuteSqlException(e);
-        }
+        return isTableExists(connection, null, null, tableName, new String[]{"TABLE"});
     }
 
 }
