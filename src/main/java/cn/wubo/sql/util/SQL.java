@@ -3,6 +3,7 @@ package cn.wubo.sql.util;
 import cn.wubo.sql.util.cache.MemoryCache;
 import cn.wubo.sql.util.entity.EntityUtils;
 import cn.wubo.sql.util.entity.TableModel;
+import cn.wubo.sql.util.enums.DriverNameType;
 import cn.wubo.sql.util.enums.StatementCondition;
 import cn.wubo.sql.util.enums.StatementType;
 import cn.wubo.sql.util.exception.SQLRuntimeException;
@@ -17,6 +18,7 @@ import lombok.Data;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -404,6 +406,7 @@ public class SQL<T> {
 
     /**
      * 解析SQL语句
+     *
      * @return SQL对象
      */
     public SQL<T> parse() {
@@ -438,13 +441,15 @@ public class SQL<T> {
 
     /**
      * 根据数据库连接URL判断数据库类型
+     *
      * @param url 数据库连接URL
      */
     private void transDbtype(String url) {
         if (url != null && !url.isEmpty()) {
             if (url.startsWith("jdbc:h2:")) dbType = DbType.h2; // 如果URL以jdbc:h2:开头，则数据库类型为h2
             else if (url.startsWith("jdbc:mysql:")) dbType = DbType.mysql; // 如果URL以jdbc:mysql:开头，则数据库类型为mysql
-            else if (url.startsWith("jdbc:postgresql:")) dbType = DbType.postgresql; // 如果URL以jdbc:postgresql:开头，则数据库类型为postgresql
+            else if (url.startsWith("jdbc:postgresql:"))
+                dbType = DbType.postgresql; // 如果URL以jdbc:postgresql:开头，则数据库类型为postgresql
         }
     }
 
@@ -626,6 +631,15 @@ public class SQL<T> {
      */
     public SQL<T> dialect(DbType dbType) {
         this.dbType = dbType;
+        return this;
+    }
+
+    public SQL<T> dialect(Connection conn) {
+        try {
+            this.dbType = Objects.requireNonNull(DriverNameType.getDriverNameType(conn.getMetaData().getDriverName())).dbType;
+        } catch (SQLException e) {
+            throw new SQLRuntimeException(e);
+        }
         return this;
     }
 
