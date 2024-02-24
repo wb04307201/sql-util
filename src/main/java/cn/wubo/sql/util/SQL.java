@@ -738,5 +738,4 @@ public class SQL<T> {
         parse();
         return ExecuteSqlUtils.executeUpdate(connection, this.sqls.get(0));
     }
-
 }
