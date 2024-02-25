@@ -98,19 +98,25 @@ public class ExecuteSqlUtils {
         return executeUpdate(connection, sql, new HashMap<>());
     }
 
+    /**
+     * 执行多个SQL语句并返回受影响的行数
+     * @param connection 数据库连接对象
+     * @param sqls SQL语句列表
+     * @return 受影响的行数
+     */
     public static int executeUpdate(Connection connection, List<String> sqls) {
         int count = 0;
         try {
-            connection.setAutoCommit(false);
+            connection.setAutoCommit(false); // 设置自动提交为false，禁止自动提交事务
             for (String sql : sqls) {
-                count += executeUpdate(connection, sql);
+                count += executeUpdate(connection, sql); // 执行单个SQL语句并累加受影响的行数
             }
-            connection.commit();
-            connection.setAutoCommit(true);
+            connection.commit(); // 提交事务
+            connection.setAutoCommit(true); // 设置自动提交为true，允许自动提交事务
         } catch (SQLException e) {
-            throw new ExecuteSqlException(e);
+            throw new ExecuteSqlException(e); // 抛出执行SQL异常
         }
-        return count;
+        return count; // 返回受影响的行数
     }
 
     /**
@@ -199,7 +205,6 @@ public class ExecuteSqlUtils {
         return result;
     }
 
-
     /**
      * 判断表是否存在
      *
@@ -229,14 +234,6 @@ public class ExecuteSqlUtils {
      * @return 表是否存在
      */
     public static Boolean isTableExists(Connection connection, String tableName) {
-        try {
-            String driverName = connection.getMetaData().getDriverName();
-            if ("H2 JDBC Driver".equals(driverName)) tableName = tableName.toUpperCase();
-            else tableName = tableName.toLowerCase();
-            return isTableExists(connection, null, null, tableName, new String[]{"TABLE"});
-        } catch (SQLException e) {
-            throw new ExecuteSqlException(e);
-        }
+        return isTableExists(connection, null, null, tableName, new String[]{"TABLE"});
     }
-
 }
