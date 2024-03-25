@@ -85,7 +85,7 @@ public class MutilConnectionPool {
     private MutilConnectionPool() {
     }
 
-    private static ConcurrentMap<String, DruidDataSource> poolMap = new ConcurrentHashMap<>();
+    private static ConcurrentMap<String, DataSource> poolMap = new ConcurrentHashMap<>();
 
     /**
      * 检查key是否存在于缓存池中
@@ -136,9 +136,8 @@ public class MutilConnectionPool {
      */
     public static synchronized void init(String key, DataSource datasource) {
         StringUtils.isEmpty("key", key);
-        if (!(datasource instanceof DruidDataSource)) throw new ConnectionPoolException("请使用DruidDataSource!");
         // 将数据源存入map中
-        poolMap.putIfAbsent(key, (DruidDataSource) datasource);
+        poolMap.putIfAbsent(key, datasource);
     }
 
     /**
@@ -175,7 +174,14 @@ public class MutilConnectionPool {
         // 检查连接池中是否存在该键
         if (poolMap.containsKey(key)) {
             // 关闭连接池
-            poolMap.get(key).close();
+            DataSource ds = poolMap.get(key);
+            if (ds instanceof AutoCloseable ac) {
+                try {
+                    ac.close();
+                } catch (Exception e) {
+                    throw new ConnectionPoolException(e.getMessage(), e);
+                }
+            }
             // 移除连接池
             poolMap.remove(key);
         }
@@ -186,9 +192,15 @@ public class MutilConnectionPool {
      */
     public static synchronized void clear() {
         // 遍历连接池中的所有键值对
-        for (Map.Entry<String, DruidDataSource> entry : poolMap.entrySet()) {
+        for (Map.Entry<String, DataSource> entry : poolMap.entrySet()) {
             // 关闭连接池
-            entry.getValue().close();
+            if (entry.getValue() instanceof AutoCloseable ac) {
+                try {
+                    ac.close();
+                } catch (Exception e) {
+                    throw new ConnectionPoolException(e.getMessage(), e);
+                }
+            }
         }
         // 清空连接池
         poolMap.clear();
