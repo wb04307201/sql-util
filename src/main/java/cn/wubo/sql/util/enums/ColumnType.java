@@ -11,6 +11,4 @@ public enum ColumnType {
     ColumnType(String value) {
         this.value = value;
     }
-
-
 }

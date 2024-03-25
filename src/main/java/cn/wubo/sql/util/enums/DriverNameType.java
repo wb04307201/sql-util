@@ -1,55 +1,50 @@
 package cn.wubo.sql.util.enums;
 
 import com.alibaba.druid.DbType;
+import lombok.Getter;
 
+@Getter
 public enum DriverNameType {
 
-    MYSQL("com.mysql.jdbc.Driver", DbType.mysql),
-    ORACLE("oracle.jdbc.driver.OracleDriver", DbType.oracle),
-    SQL_SERVER("com.microsoft.sqlserver.jdbc.SQLServerDriver", DbType.sqlserver),
-    POSTGRESQL("org.postgresql.Driver", DbType.postgresql),
-    H2("org.h2.Driver", DbType.h2),
-    HSQL("org.hsqldb.jdbcDriver", DbType.hsql),
-    DB2("com.ibm.db2.jcc.DB2Driver", DbType.db2),
-    SYBASE("com.sybase.jdbc3.jdbc.SybDriver", DbType.sybase),
-    DM("dm.jdbc.driver.DmDriver", DbType.dm);
+    MYSQL("com.mysql.jdbc.Driver", "jdbc:mysql:", "mysql", DbType.mysql), ORACLE("oracle.jdbc.driver.OracleDriver", "jdbc:oracle:", "oracle", DbType.oracle), SQL_SERVER("com.microsoft.sqlserver.jdbc.SQLServerDriver", "sqlserver", "jdbc:sqlserver:", DbType.sqlserver), POSTGRESQL("org.postgresql.Driver", "jdbc:postgresql:", "postgresql", DbType.postgresql), H2("org.h2.Driver", "jdbc:h2:", "h2", DbType.h2), DM("dm.jdbc.driver.DmDriver", "jdbc:dm:", "dm", DbType.dm);
 
-    public String value;
+    private String value;
+    private String url;
+    private String name;
+    private DbType dbType;
 
-    public DbType dbType;
-
-    DriverNameType(String value, DbType dbType) {
+    DriverNameType(String value, String url, String name, DbType dbType) {
         this.value = value;
+        this.url = url;
+        this.name = name;
         this.dbType = dbType;
     }
 
-    public static DriverNameType getDriverNameType(String value) {
+    public static DbType getDriverNameType(String className) {
         for (DriverNameType driverNameType : DriverNameType.values()) {
-            if (driverNameType.value.equals(value)) {
-                return driverNameType;
+            if (driverNameType.value.equals(className)) {
+                return driverNameType.dbType;
             }
         }
         return null;
     }
 
-    public static DriverNameType gettMetaDriverNameType(String value) {
-        value = value.toLowerCase();
-        if (value.contains("mysql")) {
-            return DriverNameType.MYSQL;
-        } else if (value.contains("oracle")) {
-            return DriverNameType.ORACLE;
-        } else if (value.contains("sqlserver")) {
-            return DriverNameType.SQL_SERVER;
-        } else if (value.contains("postgresql")) {
-            return DriverNameType.POSTGRESQL;
-        } else if (value.contains("h2")) {
-            return DriverNameType.H2;
-        } else if (value.contains("hsql")) {
-            return DriverNameType.HSQL;
-        } else if (value.contains("db2")) {
-            return DriverNameType.DB2;
-        } else if (value.contains("dm")) {
-            return DriverNameType.DM;
+    public static DbType getDriverNameTypeFromMeta(String driverName) {
+        driverName = driverName.toLowerCase();
+        for (DriverNameType driverNameType : DriverNameType.values()) {
+            if (driverName.contains(driverNameType.getName())) {
+                return driverNameType.dbType;
+            }
+        }
+        return null;
+    }
+
+    public static DbType getDriverNameTypeFromUrl(String url) {
+        url = url.toLowerCase();
+        for (DriverNameType driverNameType : DriverNameType.values()) {
+            if (url.startsWith(driverNameType.getName())) {
+                return driverNameType.dbType;
+            }
         }
         return null;
     }

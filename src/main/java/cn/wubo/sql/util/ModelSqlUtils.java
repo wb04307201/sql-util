@@ -5,7 +5,6 @@ import cn.wubo.sql.util.entity.TableModel;
 import cn.wubo.sql.util.enums.GenerationType;
 import cn.wubo.sql.util.enums.StatementCondition;
 import cn.wubo.sql.util.exception.ModelSqlException;
-import com.alibaba.druid.DbType;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -44,7 +43,7 @@ public class ModelSqlUtils {
         });
 
         // 解析SQL语句
-        return sql.parse();
+        return sql;
     }
 
     /**
@@ -65,9 +64,14 @@ public class ModelSqlUtils {
         });
         TableModel.ColumnModel keyCol = tableModel.getCols().stream().filter(TableModel.ColumnModel::getKey).findAny().orElseThrow(() -> new ModelSqlException("主键未定义"));
         sql.addWhereEQ(keyCol.getColumnName(), Objects.requireNonNull(EntityUtils.getValue(keyCol.getField(), data), "主键值不能为空"));
-        return sql.parse();
+        return sql;
     }
 
+    /**
+     * 保存SQL语句
+     * @param data 保存的数据
+     * @return SQL语句
+     */
     public static <T> SQL<T> saveSql(T data) {
         Class<T> clazz = (Class<T>) data.getClass();
         TableModel tableModel = EntityUtils.getTable(clazz);
@@ -75,7 +79,6 @@ public class ModelSqlUtils {
         if (optionalCol.isPresent()) return updateSql(data);
         else return insertSql(data);
     }
-
 
     /**
      * 构造删除SQL语句，根据标识的主键{@link @Key}删除数据
@@ -91,20 +94,18 @@ public class ModelSqlUtils {
         }.delete();
         TableModel.ColumnModel keyCol = tableModel.getCols().stream().filter(TableModel.ColumnModel::getKey).findAny().orElseThrow(() -> new ModelSqlException("主键未定义"));
         sql.addWhereEQ(keyCol.getColumnName(), Objects.requireNonNull(EntityUtils.getValue(keyCol.getField(), data), "主键值不能为空"));
-        return sql.parse();
+        return sql;
     }
-
 
     /**
      * 生成分页查询SQL
      *
      * @param data   待查询的数据
-     * @param dbType 数据库类型
      * @param offset 分页偏移量
      * @param count  分页大小
      * @return SQL对象
      */
-    public static <T> SQL<T> selectByPageSql(T data, DbType dbType, Integer offset, Integer count) {
+    public static <T> SQL<T> selectByPageSql(T data, Integer offset, Integer count) {
         Class<T> clazz = (Class<T>) data.getClass();
         // 获取表信息
         TableModel tableModel = EntityUtils.getTable(clazz);
@@ -134,19 +135,21 @@ public class ModelSqlUtils {
             }
         });
 
-        if (dbType != null) {
-            sql.dialect(dbType);
-            if (offset != null && count != null) {
-                sql.page(offset, count);
-            }
+        if (offset != null && count != null) {
+            sql.page(offset, count);
         }
 
         // 解析并返回SQL
-        return sql.parse();
+        return sql;
     }
 
+    /**
+     * 生成选择SQL语句
+     * @param data 数据
+     * @return SQL语句
+     */
     public static <T> SQL<T> selectSql(T data) {
-        return selectByPageSql(data, null, null, null);
+        return selectByPageSql(data, null, null);
     }
 
     /**
@@ -156,10 +159,9 @@ public class ModelSqlUtils {
      * @return SQL对象
      */
     public static <T> SQL<T> SQL(T data) {
-        return new SQL<T>((Class<T>) data.getClass()) {
+        return new SQL<>((Class<T>) data.getClass()) {
         };
     }
-
 
     /**
      * 根据传入的数据类型，生成对应的SQL语句
@@ -167,7 +169,7 @@ public class ModelSqlUtils {
      * @return 生成的SQL语句列表
      */
     public static <T> SQL<T> createSql(T data) {
-        return SQL(data).create().parse();
+        return SQL(data).create();
     }
 
     /**
@@ -176,7 +178,6 @@ public class ModelSqlUtils {
      * @return 删除表的SQL语句
      */
     public static <T> SQL<T> dropSql(T data) {
-        return SQL(data).drop().parse();
+        return SQL(data).drop();
     }
-
 }

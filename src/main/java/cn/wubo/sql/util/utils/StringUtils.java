@@ -35,7 +35,15 @@ public class StringUtils {
         if (str == null || str.isEmpty()) throw new StringException(String.format(IS_EMPTY_MESSAGE, message));
     }
 
+    /**
+     * 返回两个字符串中的非空非空字符串。如果第一个字符串为空或为空字符串，则返回第二个字符串；否则返回第一个字符串。
+     *
+     * @param str1 第一个字符串参数。
+     * @param str2 第二个字符串参数。
+     * @return 非空的字符串参数，优先返回str1。
+     */
     public static String defaultValue(String str1, String str2) {
+        // 判断第一个字符串是否为空，如果为空则返回第二个字符串，否则返回第一个字符串
         if (str1 == null || str1.isEmpty()) return str2;
         else return str1;
     }

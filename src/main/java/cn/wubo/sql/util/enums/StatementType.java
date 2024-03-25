@@ -11,5 +11,4 @@ public enum StatementType {
     StatementType(String value) {
         this.value = value;
     }
-
 }
