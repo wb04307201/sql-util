@@ -168,43 +168,55 @@ public class MutilConnectionPool {
     /**
      * 根据给定的键移除连接池中的连接
      *
-     * @param key 键值
+     * @param key 键值，用于标识特定的连接池
+     * @throws ConnectionPoolException 如果关闭连接池时发生异常
      */
     public static synchronized void remove(String key) {
         // 检查连接池中是否存在该键
         if (poolMap.containsKey(key)) {
-            // 关闭连接池
+            // 关闭并移除连接池
             DataSource ds = poolMap.get(key);
+            // 判断DataSource是否实现了AutoCloseable接口，以便于资源的自动释放
             if (ds instanceof AutoCloseable ac) {
                 try {
+                    // 安全关闭连接池资源
                     ac.close();
                 } catch (Exception e) {
+                    // 将关闭连接池时的异常封装并抛出
                     throw new ConnectionPoolException(e.getMessage(), e);
                 }
             }
-            // 移除连接池
+            // 从连接池映射中移除对应的键值对
             poolMap.remove(key);
         }
     }
 
+
     /**
-     * 清空连接池中的所有连接
+     * 清空连接池中的所有连接。
+     * 此方法将遍历连接池中的所有数据源，并尝试关闭它们。
+     * 完成后，会清空连接池中的所有条目。
+     *
+     * @无参数
+     * @无返回值
      */
     public static synchronized void clear() {
-        // 遍历连接池中的所有键值对
+        // 遍历连接池中的所有键值对，尝试关闭每个数据源
         for (Map.Entry<String, DataSource> entry : poolMap.entrySet()) {
             // 关闭连接池
             if (entry.getValue() instanceof AutoCloseable ac) {
                 try {
                     ac.close();
                 } catch (Exception e) {
+                    // 抛出连接池异常，封装原始异常信息
                     throw new ConnectionPoolException(e.getMessage(), e);
                 }
             }
         }
-        // 清空连接池
+        // 清空连接池，准备接收新的连接
         poolMap.clear();
     }
+
 
     /**
      * 在数据库连接上执行Function函数
