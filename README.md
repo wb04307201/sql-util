@@ -261,7 +261,6 @@ public class InitEntityWeb implements ApplicationRunner {
         // 使用给定的id和实体定义加载EntityWeb页面
         entityWebService.build("1111", User.class);
     }
-
 }
 ```
 
