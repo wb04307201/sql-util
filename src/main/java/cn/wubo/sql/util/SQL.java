@@ -36,21 +36,53 @@ public class SQL<T> {
     private List<String> sqls;
     private Map<Integer, Object> params = new HashMap<>();
 
+    /**
+     * 构造函数，初始化SQL类实例并解析泛型类型T的具体类.
+     * <p>
+     * 在构造函数内部，通过反射机制获取当前类继承的父类的泛型参数的实际类型，
+     * 并确保该类型不是Map类型（因为SQL不支持Map），
+     * 然后将该类型存储到缓存中，并赋值给成员变量this.clazz。
+     * 如果获取泛型类型时出现异常，则抛出SQLRuntimeException，提示用户需采用"new SQL<T>(){}"的方式声明。
+     */
     public SQL() {
         Type superClass = this.getClass().getGenericSuperclass();
+
         try {
+            // 将父类类型转换为ParameterizedType以便获取泛型参数的实际类型
             ParameterizedType parameterizedType = (ParameterizedType) superClass;
             Type tempType = parameterizedType.getActualTypeArguments()[0];
+
+            // 尝试从缓存中获取对应Class对象
             Class<T> tempClazz = (Class<T>) MemoryCache.getClass(tempType);
+
+            // 若缓存中不存在，则根据Type类型动态转换为Class对象
             if (tempClazz == null) {
-                if (tempType.toString().startsWith("class")) tempClazz = (Class<T>) tempType;
-                else tempClazz = (Class<T>) ((ParameterizedType) tempType).getRawType();
-                if (Boolean.TRUE.equals(MapUtils.isMap(tempClazz))) throw new SQLRuntimeException("SQL不支持Map!");
+                // 如果tempType可以直接转换为Class类型，则进行转换
+                if (tempType.toString().startsWith("class")) {
+                    tempClazz = (Class<T>) tempType;
+                }
+                // 否则tempType可能需要进一步处理，获取其原始类型
+                else {
+                    tempClazz = (Class<T>) ((ParameterizedType) tempType).getRawType();
+                }
+
+                // 检查获取到的Class对象是否为Map类型，如果是则抛出异常
+                if (Boolean.TRUE.equals(MapUtils.isMap(tempClazz))) {
+                    throw new SQLRuntimeException("SQL不支持Map!");
+                }
+
+                // 将获取到的Class对象存入缓存
                 MemoryCache.putClass(tempType, tempClazz);
+
+                // 再次从缓存中获取以确保正确存储
                 tempClazz = (Class<T>) MemoryCache.getClass(tempType);
             }
+
+            // 将实际类型赋值给成员变量
             this.clazz = tempClazz;
+
         } catch (Exception e) {
+            // 若在获取泛型类型过程中出现异常，抛出运行时异常并给出错误提示
             throw new SQLRuntimeException("请使用new SQL<T>(){}方式声明！");
         }
     }
