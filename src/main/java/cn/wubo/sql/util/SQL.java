@@ -37,52 +37,34 @@ public class SQL<T> {
     private Map<Integer, Object> params = new HashMap<>();
 
     /**
-     * 构造函数，初始化SQL类实例并解析泛型类型T的具体类.
-     * <p>
-     * 在构造函数内部，通过反射机制获取当前类继承的父类的泛型参数的实际类型，
-     * 并确保该类型不是Map类型（因为SQL不支持Map），
-     * 然后将该类型存储到缓存中，并赋值给成员变量this.clazz。
-     * 如果获取泛型类型时出现异常，则抛出SQLRuntimeException，提示用户需采用"new SQL<T>(){}"的方式声明。
+     * SQL类的构造函数。此构造函数用于初始化SQL类的实例，通过反射机制获取泛型参数的类类型，并对MemoryCache进行相应的设置。
+     * 该构造函数没有参数。
      */
     public SQL() {
+        // 获取当前实例的泛型超类
         Type superClass = this.getClass().getGenericSuperclass();
-
         try {
-            // 将父类类型转换为ParameterizedType以便获取泛型参数的实际类型
+            // 将泛型超类强制转换为参数化类型
             ParameterizedType parameterizedType = (ParameterizedType) superClass;
+            // 获取第一个泛型参数的类型
             Type tempType = parameterizedType.getActualTypeArguments()[0];
-
-            // 尝试从缓存中获取对应Class对象
-            Class<T> tempClazz = (Class<T>) MemoryCache.getClass(tempType);
-
-            // 若缓存中不存在，则根据Type类型动态转换为Class对象
-            if (tempClazz == null) {
-                // 如果tempType可以直接转换为Class类型，则进行转换
-                if (tempType.toString().startsWith("class")) {
-                    tempClazz = (Class<T>) tempType;
-                }
-                // 否则tempType可能需要进一步处理，获取其原始类型
-                else {
-                    tempClazz = (Class<T>) ((ParameterizedType) tempType).getRawType();
-                }
-
-                // 检查获取到的Class对象是否为Map类型，如果是则抛出异常
-                if (Boolean.TRUE.equals(MapUtils.isMap(tempClazz))) {
-                    throw new SQLRuntimeException("SQL不支持Map!");
-                }
-
-                // 将获取到的Class对象存入缓存
+            Class<T> memClazz = (Class<T>) MemoryCache.getClass(tempType);
+            Class<T> tempClazz;
+            // 判断tempType是否为类类型，并赋值给tempClazz
+            if (tempType.toString().startsWith("class")) tempClazz = (Class<T>) tempType;
+            else tempClazz = (Class<T>) ((ParameterizedType) tempType).getRawType();
+            // 如果获取的类与MemoryCache中存储的类不相等，则进行相应的检查和更新
+            if (!tempClazz.equals(memClazz)) {
+                // 如果tempClazz是Map类型，则抛出SQL不支持Map的异常
+                if (Boolean.TRUE.equals(MapUtils.isMap(tempClazz))) throw new SQLRuntimeException("SQL不支持Map!");
+                // 更新MemoryCache中的类
                 MemoryCache.putClass(tempType, tempClazz);
-
-                // 再次从缓存中获取以确保正确存储
                 tempClazz = (Class<T>) MemoryCache.getClass(tempType);
             }
-
-            // 将实际类型赋值给成员变量
+            // 设置clazz为tempClazz
             this.clazz = tempClazz;
-
         } catch (Exception e) {
-            // 若在获取泛型类型过程中出现异常，抛出运行时异常并给出错误提示
+            // 如果在处理过程中发生异常，则抛出SQL运行时异常
             throw new SQLRuntimeException("请使用new SQL<T>(){}方式声明！");
         }
     }
