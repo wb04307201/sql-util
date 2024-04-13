@@ -8,6 +8,5 @@ import java.lang.annotation.*;
 @Target({ElementType.FIELD})
 @Documented
 public @interface Key {
-
     GenerationType value() default GenerationType.UUID;
 }

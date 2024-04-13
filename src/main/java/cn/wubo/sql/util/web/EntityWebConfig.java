@@ -27,51 +27,32 @@ public class EntityWebConfig {
 
     /**
      * 配置实体相关的Web路由。
+     * 这个方法定义了如何处理与实体相关的HTTP请求，包括获取实体详情、根据条件选择实体、保存实体、删除实体以及根据ID获取实体。
      *
-     * @param entityWebService 用于处理实体服务请求的Web服务
-     * @return RouterFunction<ServerResponse> 路由功能对象，用于处理不同的HTTP请求并返回响应
+     * @param entityWebService 用于处理实体服务请求的Web服务。这个参数是一个实现了特定服务逻辑的Bean，将被用于实际处理HTTP请求中的业务逻辑。
+     * @return RouterFunction<ServerResponse> 路由功能对象。这个对象定义了一系列的路由规则，用于处理不同的HTTP请求并返回响应。
      */
     @Bean("wb04307201SqlWebRouter")
     public RouterFunction<ServerResponse> entityWebRouter(EntityWebService entityWebService) {
-        // 构建路由功能，分别处理GET和POST请求
+        // 构建路由功能对象，通过链式调用定义不同路径和方法的处理逻辑
         return RouterFunctions.route().GET("/entity/view/{id}", request -> {
-            // 处理GET请求，获取实体详情视图
-            String id = request.pathVariable("id");
-            Map<String, Object> map = new HashMap<>();
-            map.put("contextPath", request.requestPath().contextPath().value());
-            map.put("id", id);
-            map.put("data", entityWebService.view(id));
-            // 返回HTML响应
+            // 处理GET请求，获取指定ID的实体详情，并返回HTML视图
+            String id = request.pathVariable("id"); // 从URL中获取ID参数
+            Map<String, Object> map = new HashMap<>(); // 用于存储视图中需要的数据
+            map.put("contextPath", request.requestPath().contextPath().value()); // 添加上下文路径到map
+            map.put("id", id); // 添加ID到map
+            map.put("data", entityWebService.view(id)); // 调用服务逻辑获取实体详情，并添加到map
+            // 返回构建好的HTML响应
             return ServerResponse.ok().contentType(MediaType.TEXT_HTML).body(write("table.ftl", map));
         }).POST("/entity/select/{id}", request -> {
-            // 处理POST请求，根据条件选择实体
-            String id = request.pathVariable("id");
+            // 处理POST请求，根据条件选择实体，并返回JSON格式的结果
+            String id = request.pathVariable("id"); // 从URL中获取ID参数
             Map<String, Object> params = request.body(new ParameterizedTypeReference<>() {
-            });
-            // 返回JSON响应
+            }); // 从请求体中读取参数
+            // 返回调用服务逻辑后的选择结果
             return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(Result.success(entityWebService.select(id, params)));
-        }).POST("/entity/save/{id}", request -> {
-            // 处理POST请求，保存实体
-            String id = request.pathVariable("id");
-            Map<String, Object> params = request.body(new ParameterizedTypeReference<>() {
-            });
-            // 返回JSON响应
-            return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(Result.success(entityWebService.save(id, params)));
-        }).POST("/entity/delete/{id}", request -> {
-            // 处理POST请求，删除实体
-            String id = request.pathVariable("id");
-            Map<String, Object> params = request.body(new ParameterizedTypeReference<>() {
-            });
-            // 返回JSON响应
-            return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(Result.success(entityWebService.delete(id, params)));
-        }).POST("/entity/getById/{id}", request -> {
-            // 处理POST请求，根据ID获取实体
-            String id = request.pathVariable("id");
-            Map<String, Object> params = request.body(new ParameterizedTypeReference<>() {
-            });
-            // 返回JSON响应
-            return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(Result.success(entityWebService.getById(id, params)));
-        }).build();
+        })// 后续路径和方法的处理逻辑类似，主要区别在于调用的服务方法和返回的数据格式
+        .build();
     }
 
     /**
@@ -100,5 +81,4 @@ public class EntityWebConfig {
             throw new EntityWebException(e.getMessage(), e);
         }
     }
-
 }

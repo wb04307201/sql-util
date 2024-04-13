@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>${data.name}-${data.desc}</title>
-    <link rel="stylesheet" type="text/css" href="${contextPath}/entity/web/static/layui/2.9.4/css/layui.css"/>
-    <script type="text/javascript" src="${contextPath}/entity/web/static/layui/2.9.4/layui.js"></script>
+    <link rel="stylesheet" type="text/css" href="${contextPath}/entity/web/static/layui/2.9.8/css/layui.css"/>
+    <script type="text/javascript" src="${contextPath}/entity/web/static/layui/2.9.8/layui.js"></script>
     <style>
         body {
             padding: 10px 20px 10px 20px;

@@ -30,11 +30,13 @@ public class TableModel {
     private String name;
     private String desc;
     private DsModel ds;
+    private Boolean init;
     private List<ColumnModel> cols = new ArrayList<>();
 
-    public TableModel(String name, String desc) {
+    public TableModel(String name, String desc, Boolean init) {
         this.name = name;
         this.desc = desc;
+        this.init = init;
     }
 
     public TableModel setDs(Ds ds) {
@@ -146,8 +148,10 @@ public class TableModel {
             private Boolean search;
 
             public EditModel(Boolean show, EditType type, Boolean notNull, String placeholder, List<ItemModel> items, Boolean search) {
-                if(type == EditType.SELECT && (items == null || items.isEmpty())) throw new EntityWebException("type为SELECT时，items不应为空！");
-                if(type == EditType.CHECKBOX && (items == null || items.size() != 2)) throw new EntityWebException("type为CHECKBOX时，items应包含2个元素！");
+                if (type == EditType.SELECT && (items == null || items.isEmpty()))
+                    throw new EntityWebException("type为SELECT时，items不应为空！");
+                if (type == EditType.CHECKBOX && (items == null || items.size() != 2))
+                    throw new EntityWebException("type为CHECKBOX时，items应包含2个元素！");
                 this.show = show;
                 this.type = type;
                 this.notNull = notNull;
@@ -165,13 +169,14 @@ public class TableModel {
         }
 
         /**
-         * 根据字段类型转换为数据库类型
+         * 根据字段类型转换为对应的数据库类型。
+         * 该方法通过分析字段的类型，来确定在数据库中应该使用的对应数据类型。
          *
-         * @param field 字段对象
-         * @return 数据库类型
+         * @param field 需要转换的字段对象。
+         * @return 对应的数据库数据类型，如INTEGER、VARCHAR等。
          */
         private String fieldTypeToDbType(Field field) {
-            // 判断字段类型
+            // 根据字段类型，返回对应的数据库数据类型
             if (field.getType().equals(Integer.class)) {
                 return "INTEGER";
             } else if (field.getType().equals(Long.class)) {
@@ -195,8 +200,10 @@ public class TableModel {
             } else if (field.getType().equals(Clob.class)) {
                 return "CLOB";
             } else {
+                // 如果不是上述任何一种类型，则默认返回VARCHAR
                 return "VARCHAR";
             }
         }
+
     }
 }
