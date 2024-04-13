@@ -36,21 +36,35 @@ public class SQL<T> {
     private List<String> sqls;
     private Map<Integer, Object> params = new HashMap<>();
 
+    /**
+     * SQL类的构造函数。此构造函数用于初始化SQL类的实例，通过反射机制获取泛型参数的类类型，并对MemoryCache进行相应的设置。
+     * 该构造函数没有参数。
+     */
     public SQL() {
+        // 获取当前实例的泛型超类
         Type superClass = this.getClass().getGenericSuperclass();
         try {
+            // 将泛型超类强制转换为参数化类型
             ParameterizedType parameterizedType = (ParameterizedType) superClass;
+            // 获取第一个泛型参数的类型
             Type tempType = parameterizedType.getActualTypeArguments()[0];
-            Class<T> tempClazz = (Class<T>) MemoryCache.getClass(tempType);
-            if (tempClazz == null) {
-                if (tempType.toString().startsWith("class")) tempClazz = (Class<T>) tempType;
-                else tempClazz = (Class<T>) ((ParameterizedType) tempType).getRawType();
+            Class<T> memClazz = (Class<T>) MemoryCache.getClass(tempType);
+            Class<T> tempClazz;
+            // 判断tempType是否为类类型，并赋值给tempClazz
+            if (tempType.toString().startsWith("class")) tempClazz = (Class<T>) tempType;
+            else tempClazz = (Class<T>) ((ParameterizedType) tempType).getRawType();
+            // 如果获取的类与MemoryCache中存储的类不相等，则进行相应的检查和更新
+            if (!tempClazz.equals(memClazz)) {
+                // 如果tempClazz是Map类型，则抛出SQL不支持Map的异常
                 if (Boolean.TRUE.equals(MapUtils.isMap(tempClazz))) throw new SQLRuntimeException("SQL不支持Map!");
+                // 更新MemoryCache中的类
                 MemoryCache.putClass(tempType, tempClazz);
                 tempClazz = (Class<T>) MemoryCache.getClass(tempType);
             }
+            // 设置clazz为tempClazz
             this.clazz = tempClazz;
         } catch (Exception e) {
+            // 如果在处理过程中发生异常，则抛出SQL运行时异常
             throw new SQLRuntimeException("请使用new SQL<T>(){}方式声明！");
         }
     }
@@ -405,13 +419,13 @@ public class SQL<T> {
     }
 
     /**
-     * 解析SQL语句
+     * 解析SQL语句。
+     * 根据statementType的值，执行相应的SQL语句解析逻辑。
      *
-     * @return SQL对象
+     * @return SQL<T> 返回解析后的SQL对象。
      */
     public SQL<T> parse() {
-        atomicInteger = new AtomicInteger(0);
-        switch (statementType) {
+        switch (statementType) { // 根据语句类型执行相应的解析方法
             case SELECT:
                 selectSQL();
                 break;
@@ -431,12 +445,23 @@ public class SQL<T> {
                 dropSQL();
                 break;
             default:
+                // 如果没有匹配到任何类型，可能需要处理默认情况，此例中没有提供默认处理逻辑
         }
-        return this;
+        return this; // 返回当前SQL对象实例，允许链式调用
     }
 
     /**
-     * 构建SELECT语句
+     * 构建SELECT语句。
+     * 该方法根据提供的类信息（clazz），构建针对特定表的SELECT查询语句。查询语句的构建过程包括：
+     * 1. 初始化StringBuilder；
+     * 2. 获取表信息；
+     * 3. 添加SELECT语句的类型；
+     * 4. 根据columns列表添加选择的字段，如果列表为空，则默认选择所有字段；
+     * 5. 添加FROM关键字和表名；
+     * 6. 调用whereSQL方法添加WHERE条件；
+     * 7. 根据dbType转换SQL语法；
+     * 8. 如果存在分页信息，则对SQL应用分页限制；
+     * 9. 将构建好的SQL语句添加到sqls列表中。
      */
     private void selectSQL() {
         StringBuilder sb = new StringBuilder();
@@ -453,19 +478,23 @@ public class SQL<T> {
         // 添加WHERE语句
         whereSQL(sb);
         String sql = sb.toString();
+        // 根据dbType转换SQL字符串
         if (dbType != null) sql = SQLUtils.toSQLString(SQLUtils.parseStatements(sb.toString(), dbType), dbType);
+        // 应用分页限制
         if (offset != null && count != null) sql = PagerUtils.limit(sql, dbType, offset, count);
+        // 将构建好的SQL语句添加到集合中
         sqls.add(sql);
     }
 
     /**
-     * Generates the SQL WHERE clause based on the given list of wheres.
+     * 根据给定的where条件列表生成SQL WHERE子句。
      *
-     * @param sb the StringBuilder to append the generated SQL WHERE clause to
+     * @param sb 用于追加生成的SQL WHERE子句的StringBuilder对象
      */
     private void whereSQL(StringBuilder sb) {
+        // 将where条件列表转换为SQL语句字符串
         String whereSQL = wheres.stream().map(where -> {
-            // Check if the condition is an OR condition
+            // 检查条件是否为OR条件
             if (Boolean.TRUE.equals(FunctionUtils.compileConditionOr(where, t -> where.getStatementCondition() == StatementCondition.EQ, t -> where.getStatementCondition() == StatementCondition.UEQ, t -> where.getStatementCondition() == StatementCondition.GT, t -> where.getStatementCondition() == StatementCondition.GTEQ, t -> where.getStatementCondition() == StatementCondition.LT, t -> where.getStatementCondition() == StatementCondition.LTEQ))) {
                 params.put(atomicInteger.incrementAndGet(), where.getValue());
                 return where.getField() + where.getStatementCondition().getValue() + "?";
@@ -482,6 +511,7 @@ public class SQL<T> {
                 params.put(atomicInteger.incrementAndGet(), valueStr);
                 return where.getField() + where.getStatementCondition().getValue() + "?";
             } else if (Boolean.TRUE.equals(FunctionUtils.compileConditionOr(where, t -> where.getStatementCondition() == StatementCondition.BETWEEN, t -> where.getStatementCondition() == StatementCondition.NOTBETWEEN))) {
+                // 处理BETWEEN和NOT BETWEEN条件
                 return FunctionUtils.buildCondition(where, t -> FunctionUtils.compileConditionAnd(t, tt -> tt.getValue() instanceof List, tt -> ((List<?>) tt.getValue()).size() == 2), t -> {
                     List<?> valueObjs = (List<?>) where.getValue();
                     params.put(atomicInteger.incrementAndGet(), valueObjs.get(0));
@@ -489,6 +519,7 @@ public class SQL<T> {
                     return where.getField() + where.getStatementCondition().getValue() + "? AND ?";
                 });
             } else if (Boolean.TRUE.equals(FunctionUtils.compileConditionOr(where, t -> where.getStatementCondition() == StatementCondition.IN, t -> where.getStatementCondition() == StatementCondition.NOTIN))) {
+                // 处理IN和NOT IN条件
                 return FunctionUtils.buildCondition(where, t -> where.getValue() instanceof List, t -> {
                     List<?> valueObjs = (List<?>) where.getValue();
                     if (valueObjs.isEmpty()) {
@@ -499,25 +530,33 @@ public class SQL<T> {
                     }
                 });
             } else if (Boolean.TRUE.equals(FunctionUtils.compileConditionOr(where, t -> where.getStatementCondition() == StatementCondition.NULL, t -> where.getStatementCondition() == StatementCondition.NOTNULL))) {
+                // 处理NULL和NOT NULL条件
                 return where.getField() + where.getStatementCondition().getValue();
             } else {
                 return null;
             }
         }).filter(Objects::nonNull).collect(Collectors.joining(" AND "));
+        // 如果生成的SQL不为空，则追加到WHERE子句前
         if (!whereSQL.isEmpty()) sb.append(" WHERE ").append(whereSQL);
     }
 
     /**
-     * Insert SQL
+     * 插入SQL语句的生成方法。
+     * 该方法用于根据给定的实体类信息，生成插入数据的SQL语句。
+     * 不接受任何参数。
+     * 无返回值。
      */
     private void insertSQL() {
         StringBuilder sb = new StringBuilder();
-        // 获取表信息
+        // 获取表信息，基于实体类 clazz
         TableModel tableModel = EntityUtils.getTable(clazz);
+        // 构建插入语句的SQL字符串
         sb.append(statementType.getValue()).append(tableModel.getName()).append(" (").append(sets.stream().map(set -> {
+            // 为参数映射表增加参数，并返回字段名
             params.put(atomicInteger.incrementAndGet(), set.getValue());
             return set.getField();
         }).collect(Collectors.joining(","))).append(") VALUES (").append(sets.stream().map(set -> "?").collect(Collectors.joining(","))).append(")");
+        // 根据数据库类型，对SQL语句进行格式化处理
         if (dbType != null) {
             sqls.add(SQLUtils.toSQLString(SQLUtils.parseStatements(sb.toString(), dbType), dbType));
         } else {
@@ -526,18 +565,27 @@ public class SQL<T> {
     }
 
     /**
-     * Update SQL
+     * 更新SQL语句
+     * 该方法用于根据当前实体类的信息构建一个更新数据库记录的SQL语句。
+     * 它首先会构建SQL语句的更新部分，然后追加WHERE条件，并最终生成完整的SQL字符串。
+     * 生成的SQL语句会根据提供的数据库类型进行适配，并存储在sqls列表中。
      */
     private void updateSQL() {
         StringBuilder sb = new StringBuilder();
-        // 获取表信息
+        // 获取表模型信息，用于构建SQL中的表名部分
         TableModel tableModel = EntityUtils.getTable(clazz);
-        sb.append(statementType.getValue()).append(tableModel.getName()).append(" SET "); // Append the UPDATE statement with the table name
-        sb.append(sets.stream().map(set -> { // Iterate over each set
-            params.put(atomicInteger.incrementAndGet(), set.getValue()); // Add the set value to the params map with a unique key
-            return set.getField() + " = ?"; // Append the set field with a placeholder for the value
-        }).collect(Collectors.joining(","))); // Join the set fields with commas
-        whereSQL(sb); // Append the WHERE clause to the SQL statement
+        sb.append(statementType.getValue()).append(tableModel.getName()).append(" SET "); // 构建SQL语句的开始部分，包括UPDATE关键字和表名
+
+        // 遍历所有的更新字段集合，构建SET部分的SQL语句，并为每个参数生成一个唯一的key存储在params映射中
+        sb.append(sets.stream().map(set -> {
+            params.put(atomicInteger.incrementAndGet(), set.getValue()); // 存储参数值
+            return set.getField() + " = ?"; // 构建字段名和占位符的组合
+        }).collect(Collectors.joining(","))); // 使用逗号将所有SET子句连接起来
+
+        // 调用方法追加WHERE子句到SQL语句中
+        whereSQL(sb);
+
+        // 根据提供的数据库类型，对SQL语句进行适配处理，并添加到sqls列表中
         if (dbType != null) {
             sqls.add(SQLUtils.toSQLString(SQLUtils.parseStatements(sb.toString(), dbType), dbType));
         } else {
@@ -547,113 +595,144 @@ public class SQL<T> {
 
     /**
      * 构建删除SQL语句
+     * 该方法用于根据当前实体类的信息，构建针对该实体类的删除操作的SQL语句。
+     * SQL语句的构建过程包括：确定删除语句类型、指定表名、添加WHERE条件。
+     * 注意：该方法不直接执行SQL语句，仅构造SQL字符串。
      */
     private void deleteSQL() {
         StringBuilder sb = new StringBuilder();
-        // 获取表信息
+        // 获取当前实体类对应的表模型
         TableModel tableModel = EntityUtils.getTable(clazz);
-        // 添加删除语句类型和表名
+        // 初始化SQL语句，添加删除语句类型和表名
         sb.append(statementType.getValue()).append(tableModel.getName());
 
-        // 添加WHERE子句
+        // 调用whereSQL方法，添加WHERE子句
         whereSQL(sb);
+        // 根据数据库类型，将构建好的SQL语句转换为字符串或者解析为合适的SQL格式，并加入到SQL语句列表中
         if (dbType != null) sqls.add(SQLUtils.toSQLString(SQLUtils.parseStatements(sb.toString(), dbType), dbType));
         else sqls.add(sb.toString());
     }
 
     /**
-     * 创建SQL语句
+     * 根据数据库类型创建对应的SQL建表语句。
+     * 该方法会根据传入的类（clazz）信息和数据库类型（dbType），构建相应的SQL创建表语句。
+     * 对于支持注释的数据库（如H2和PostgreSQL），还会添加表和列的注释。
+     * 创建的SQL语句会存储在sqls列表中。
      */
     private void createSQL() {
-        // 初始化StringBuilder和List
+        // 初始化StringBuilder用于构建SQL语句，和List用于存储额外的SQL语句（如列注释）
         StringBuilder sb = new StringBuilder().append("create table ");
-        // 获取表信息
+        // 获取表的模型信息，包括表名、列信息和表描述
         TableModel tableModel = EntityUtils.getTable(clazz);
         if (dbType == DbType.h2 || dbType == DbType.postgresql) {
-            // 添加表注释
+            // 如果是H2或PostgreSQL数据库，支持表和列的注释
+            // 首先添加对表的注释
             sqls.add(String.format("comment on table %s is '%s'", tableModel.getName(), tableModel.getDesc()));
             sb.append(tableModel.getName()).append(" (");
+            // 遍历列，为每一列添加定义和注释
             tableModel.getCols().forEach(col -> {
                 sb.append(col.getColumnName()).append(" ").append(col.getDefinition()).append(",");
-                // 添加列注释
+                // 添加对列的注释
                 sqls.add(String.format("comment on column %s.%s is '%s'", tableModel.getName(), col.getColumnName(), col.getDesc()));
             });
+            // 删除最后一个多余的逗号，然后关闭括号
             int length = sb.length();
             sb.delete(length - 1, length).append(")");
+            // 将完整的建表语句添加到sqls列表的开头
             sqls.add(0, sb.toString());
         } else if (dbType == DbType.mysql) {
+            // 如果是MySQL数据库，支持表注释，但在列定义中直接添加列注释
             sb.append(tableModel.getName()).append(" (");
+            // 遍历列，为每一列添加定义和注释
             tableModel.getCols().forEach(col -> sb.append(col.getColumnName()).append(" ").append(col.getDefinition()).append(" null comment '").append(col.getDesc()).append("',"));
+            // 删除最后一个多余的逗号，然后关闭括号，并添加表的总注释
             int length = sb.length();
             sb.delete(length - 1, length).append(")").append(" comment '").append(tableModel.getDesc()).append("'");
+            // 将完整的建表语句添加到sqls列表的开头
             sqls.add(0, sb.toString());
         } else {
+            // 对于其他不支持注释的数据库，只构建基本的建表语句
             sb.append(tableModel.getName()).append(" (");
+            // 遍历列，添加每一列的定义
             tableModel.getCols().forEach(col -> sb.append(col.getColumnName()).append(" ").append(col.getDefinition()).append(","));
+            // 删除最后一个多余的逗号，然后关闭括号
             int length = sb.length();
             sb.delete(length - 1, length).append(")");
+            // 将完整的建表语句添加到sqls列表的开头
             sqls.add(0, sb.toString());
         }
     }
 
     /**
-     * 添加删除表的SQL语句
+     * 添加删除表的SQL语句到sqls列表中。
+     * 这个方法通过获取给定类对应的表模型，然后构造一个删除该表的SQL语句并添加到sqls列表中。
      */
     private void dropSQL() {
         // 获取表信息
         TableModel tableModel = EntityUtils.getTable(clazz);
+        // 构造并添加删除表的SQL语句
         sqls.add("DROP TABLE " + tableModel.getName());
     }
 
     /**
      * 设置数据库方言
+     * 此方法用于根据关联的实体类设置操作数据库时使用的方言。
+     * 方言的设置依赖于实体类所映射的数据库表和数据源。
      *
-     * @return SQL对象
+     * @return SQL对象  返回当前SQL对象实例，支持链式调用。
      */
-    public SQL<T> dialect() {
+    private SQL<T> dialect() {
         if (this.clazz != null) {
-            // 获取表模型
+            // 根据实体类获取对应的表模型
             TableModel tableModel = EntityUtils.getTable(this.clazz);
-            // 获取数据库类型
+            // 从表模型的数据源URL中解析出数据库类型
             this.dbType = DriverNameType.getDriverNameTypeFromUrl(tableModel.getDs().getUrl());
         }
         return this;
     }
 
-
     /**
      * 设置数据库方言
+     * 本方法用于根据不同的数据库类型，设置相应的数据库方言。方言的设置将影响SQL语句的生成，确保生成的SQL语句能够与特定的数据库正确交互。
      *
-     * @param dbType 数据库方言
-     * @return SQL对象
+     * @param dbType 数据库方言类型，指示当前使用的数据库类型，例如MySQL、Oracle等。
+     * @return 返回SQL对象本身，支持链式调用。这样可以在调用dialect方法后继续调用其他方法，而不需要显式地保存或重新获取SQL对象的引用。
      */
     public SQL<T> dialect(DbType dbType) {
-        this.dbType = dbType;
-        return this;
+        this.dbType = dbType; // 设置当前SQL对象的数据库类型为传入的dbType参数
+        return this; // 返回当前SQL对象，允许链式调用
     }
 
     /**
      * 获取数据库类型
+     * <p>
+     * 通过分析数据库连接对象获取数据库的类型。此方法会尝试从数据库连接的元数据中提取驱动名称，
+     * 并据此判断数据库的类型。
      *
-     * @param conn 数据库连接对象
+     * @param conn 数据库连接对象，用于获取数据库的元数据信息。
      */
     public void dialect(Connection conn) {
         try {
+            // 从数据库连接的元数据中提取驱动名称，进而判断数据库类型
             this.dbType = DriverNameType.getDriverNameTypeFromMeta(conn.getMetaData().getDriverName());
         } catch (SQLException e) {
+            // 如果在获取元数据过程中出现SQLException，将其转换为SQLRuntimeException并抛出
             throw new SQLRuntimeException(e);
         }
     }
 
     /**
      * 分页查询
+     * 该方法用于设置查询的分页信息，根据提供的偏移量和每页显示的数量来设定。
      *
-     * @param offset 分页偏移量
-     * @param count  每页显示数量
-     * @return SQL对象
+     * @param offset 分页偏移量，表示从结果集的第几个位置开始取。
+     * @param count  每页显示数量，表示每页最多显示多少条记录。
+     * @return SQL对象，返回当前SQL实例，支持链式调用。
+     * @throws SQLRuntimeException 如果在设置分页前未使用dialect设置数据库类型，或者在非查询模式下调用此方法，将抛出异常。
      */
     public SQL<T> page(int offset, int count) {
         // 检查数据库类型是否已设置
+        if (dbType == null) dialect();
         if (dbType == null) throw new SQLRuntimeException("设置分页前，请使用dialect设置数据库类型!");
         if (statementType != StatementType.SELECT) throw new SQLRuntimeException("非查询模式，不能调用page方法！");
         this.offset = offset;
@@ -662,35 +741,49 @@ public class SQL<T> {
     }
 
     /**
-     * 执行查询操作
+     * 执行查询操作。该方法用于执行数据库查询语句，并返回查询结果的列表。
      *
-     * @param connection 数据库连接
-     * @return 查询结果列表
+     * @param connection 数据库连接对象，用于与数据库建立连接。
+     * @return 查询结果的列表，类型为泛型T。
+     * @throws SQLRuntimeException 如果当前操作非查询模式，即statementType不为SELECT，抛出此异常。
      */
     public List<T> executeQuery(Connection connection) {
+        // 检查当前操作是否为查询模式
         if (statementType != StatementType.SELECT)
             throw new SQLRuntimeException("非查询模式，不能调用executeQuery方法！");
+
+        // 初始化数据库类型，如果还未设置
         if (dbType == null) dialect();
         if (dbType == null) dialect(connection);
+
+        // 解析查询语句及相关参数
         parse();
+
+        // 执行查询操作，并返回查询结果
         return ExecuteSqlUtils.executeQuery(connection, this.sqls.get(0), this.params, this.clazz);
     }
 
     /**
-     * 执行更新操作
+     * 执行更新操作，主要用于插入、更新和删除数据库记录。
      *
-     * @param connection 数据库连接
-     * @return 更新的行数
-     * @throws SQLRuntimeException 如果不是新增、更新、删除模式，抛出异常
+     * @param connection 数据库连接对象，用于执行更新操作时的数据库连接。
+     * @return 返回更新操作所影响的行数。
+     * @throws SQLRuntimeException 如果当前操作模式不是新增、更新、删除，则抛出异常。
      */
     public int executeUpdate(Connection connection) {
-        // 检查是否是新增、更新、删除模式
+        // 检查操作类型是否为新增、更新或删除，否则抛出异常
         if (statementType != StatementType.INSERT && statementType != StatementType.UPDATE && statementType != StatementType.DELETE)
             throw new SQLRuntimeException("非新增、更新、删除模式，不能调用executeUpdate方法！");
+
+        // 如果数据库类型未设置，则自动识别数据库类型
         if (dbType == null) dialect();
+        // 如果仍未设置数据库类型，则通过连接自动识别
         if (dbType == null) dialect(connection);
+
+        // 解析SQL语句
         parse();
-        // 执行更新操作
+
+        // 执行更新操作，并返回影响的行数
         return ExecuteSqlUtils.executeUpdate(connection, this.sqls.get(0), this.params);
     }
 

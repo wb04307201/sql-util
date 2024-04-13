@@ -7,7 +7,7 @@
 [![fork](https://img.shields.io/github/forks/wb04307201/sql-util)](https://github.com/wb04307201/sql-util)
 
 > 提供一套高效、便捷的数据库操作工具集，  
-> 包括多数据源连接池、SQL语句执行工具类、SQL构造工具以及从实体类构造SQL的工具，  
+> 包括多数据源连接池、SQL语句执行工具类、SQL构造工具类、从实体类构造SQL工具类，  
 > 亦可以通过实体快速构造web页面，  
 > 帮助开发者简化数据库操作，提高开发效率和代码质量。
 
@@ -261,7 +261,6 @@ public class InitEntityWeb implements ApplicationRunner {
         // 使用给定的id和实体定义加载EntityWeb页面
         entityWebService.build("1111", User.class);
     }
-
 }
 ```
 
