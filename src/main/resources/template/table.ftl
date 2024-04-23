@@ -5,6 +5,7 @@
     <title>${data.name}-${data.desc}</title>
     <link rel="stylesheet" type="text/css" href="${contextPath}/entity/web/static/layui/2.9.8/css/layui.css"/>
     <script type="text/javascript" src="${contextPath}/entity/web/static/layui/2.9.8/layui.js"></script>
+    <script type="text/javascript" src="${contextPath}/entity/web/static/echarts/5.5.0/echarts.min.js"></script>
     <style>
         body {
             padding: 10px 20px 10px 20px;
@@ -119,6 +120,7 @@
         </#list>
     </div>
 </div>
+<div id="echarts" style="width: 100%;height:400px;"></div>
 <script>
     layui.use(['table', 'form', 'util'], function () {
         let table = layui.table, form = layui.form, layer = layui.layer, $ = layui.$, laydate = layui.laydate;
@@ -195,8 +197,13 @@
                     "data": res.data // 解析数据列表
                 };
             },
-            // height: 'full-155',
+            // height: 'full',
             toolbar: '#table-toolbar',
+            defaultToolbar: ['filter', 'exports', 'print', {
+                title: '图表',
+                layEvent: 'LAYTABLE_CHART',
+                icon: 'layui-icon-chart'
+            }],
         });
 
         // 头部工具栏事件
@@ -218,6 +225,9 @@
                     if (checkStatus.data.length === 0)
                         return layer.msg('请选择至少一行');
                     delRow(checkStatus.data);
+                    break;
+                case 'LAYTABLE_CHART':
+                    layer.alert('自定义工具栏图标按钮');
                     break;
             }
         });
@@ -338,6 +348,34 @@
                 })
                 .catch(err => layer.msg(err))
         }
+
+        // 基于准备好的dom，初始化echarts实例
+        var myChart = echarts.init(document.getElementById('echarts'));
+
+        // 指定图表的配置项和数据
+        var option = {
+            title: {
+                text: 'ECharts 入门示例'
+            },
+            tooltip: {},
+            legend: {
+                data: ['销量']
+            },
+            xAxis: {
+                data: ['衬衫', '羊毛衫', '雪纺衫', '裤子', '高跟鞋', '袜子']
+            },
+            yAxis: {},
+            series: [
+                {
+                    name: '销量',
+                    type: 'bar',
+                    data: [5, 20, 36, 10, 10, 20]
+                }
+            ]
+        };
+
+        // 使用刚指定的配置项和数据显示图表。
+        myChart.setOption(option);
     })
 </script>
 </body>
