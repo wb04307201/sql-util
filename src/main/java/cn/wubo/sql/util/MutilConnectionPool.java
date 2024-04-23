@@ -85,7 +85,7 @@ public class MutilConnectionPool {
     private MutilConnectionPool() {
     }
 
-    private static ConcurrentMap<String, DruidDataSource> poolMap = new ConcurrentHashMap<>();
+    private static ConcurrentMap<String, DataSource> poolMap = new ConcurrentHashMap<>();
 
     /**
      * 检查key是否存在于缓存池中
@@ -136,9 +136,8 @@ public class MutilConnectionPool {
      */
     public static synchronized void init(String key, DataSource datasource) {
         StringUtils.isEmpty("key", key);
-        if (!(datasource instanceof DruidDataSource)) throw new ConnectionPoolException("请使用DruidDataSource!");
         // 将数据源存入map中
-        poolMap.putIfAbsent(key, (DruidDataSource) datasource);
+        poolMap.putIfAbsent(key, datasource);
     }
 
     /**
@@ -169,28 +168,51 @@ public class MutilConnectionPool {
     /**
      * 根据给定的键移除连接池中的连接
      *
-     * @param key 键值
+     * @param key 键值，用于标识特定的连接池。此键用于在连接池映射中定位到特定的连接池资源。
+     * @throws ConnectionPoolException 如果关闭连接池时发生异常，会抛出此异常。
      */
     public static synchronized void remove(String key) {
-        // 检查连接池中是否存在该键
+        // 检查连接池映射中是否存在指定的键
         if (poolMap.containsKey(key)) {
-            // 关闭连接池
-            poolMap.get(key).close();
-            // 移除连接池
+            // 从映射中获取到对应的连接池资源
+            DataSource ds = poolMap.get(key);
+            // 检查DataSource是否实现了AutoCloseable接口，以支持资源的自动释放
+            if (ds instanceof AutoCloseable ac) {
+                try {
+                    // 安全关闭连接池，释放资源。这是移除连接池前的重要步骤。
+                    ac.close();
+                } catch (Exception e) {
+                    // 在关闭资源时遇到异常，封装并抛出，以便上层处理。
+                    throw new ConnectionPoolException(e.getMessage(), e);
+                }
+            }
+            // 从连接池映射中移除指定的键值对，完成连接池的移除操作。
             poolMap.remove(key);
         }
     }
 
     /**
-     * 清空连接池中的所有连接
+     * 清空连接池中的所有连接。
+     * 此方法将遍历连接池中的所有数据源，并尝试关闭它们。
+     * 完成后，会清空连接池中的所有条目。
+     *
+     * @无参数
+     * @无返回值
      */
     public static synchronized void clear() {
-        // 遍历连接池中的所有键值对
-        for (Map.Entry<String, DruidDataSource> entry : poolMap.entrySet()) {
+        // 遍历连接池中的所有键值对，尝试关闭每个数据源
+        for (Map.Entry<String, DataSource> entry : poolMap.entrySet()) {
             // 关闭连接池
-            entry.getValue().close();
+            if (entry.getValue() instanceof AutoCloseable ac) {
+                try {
+                    ac.close();
+                } catch (Exception e) {
+                    // 抛出连接池异常，封装原始异常信息
+                    throw new ConnectionPoolException(e.getMessage(), e);
+                }
+            }
         }
-        // 清空连接池
+        // 清空连接池，准备接收新的连接
         poolMap.clear();
     }
 
