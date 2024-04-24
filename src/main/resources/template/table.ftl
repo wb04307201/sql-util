@@ -120,10 +120,17 @@
         </#list>
     </div>
 </div>
-<div id="echarts" style="width: 100%;height:400px;"></div>
+<div id="echarts-layer-wrapper" style="display: none;">
+    <div style="width: 480px;height: 600px;float: left;">
+        <div id="x-transfer"></div>
+        <div id="y-transfer"></div>
+    </div>
+    <div id="echarts" style="width: calc(100% - 500px);height: 600px;float: right;"></div>
+</div>
 <script>
     layui.use(['table', 'form', 'util'], function () {
-        let table = layui.table, form = layui.form, layer = layui.layer, $ = layui.$, laydate = layui.laydate;
+        let table = layui.table, form = layui.form, layer = layui.layer, $ = layui.$, laydate = layui.laydate,
+            transfer = layui.transfer, util = layui.util;
 
         <#list data.cols as item>
         <#if item.getEdit().search && !item.key && item.getEdit().type?? && item.getEdit().type == 'DATE'>
@@ -177,7 +184,7 @@
                         </#list>
                         return ''
                     }, </#if>
-                    <#if !item.getView().translatable && item.field.getType().getSimpleName() == 'Date'>templet: function (d) {
+                    <#if !item.getView().translatable && item.getType() == 'DATE'>templet: function (d) {
                         return d.${item.fieldName} ? (d.${item.fieldName}.length > 10 ? d.${item.fieldName}.slice(0, 10) : d.${item.fieldName}) : ''
                     }, </#if>
                 },
@@ -227,7 +234,7 @@
                     delRow(checkStatus.data);
                     break;
                 case 'LAYTABLE_CHART':
-                    layer.alert('自定义工具栏图标按钮');
+                    openChart();
                     break;
             }
         });
@@ -333,7 +340,7 @@
                     if (res.code === 200) {
                         let data = res.data;
                         <#list data.cols as item>
-                        <#if item.getEdit().show && item.field.getType().getSimpleName() == 'Date'>
+                        <#if item.getEdit().show && item.getType() == 'DATE'>
                         data.${item.fieldName} = data.${item.fieldName} ? (data.${item.fieldName}.length > 10 ? data.${item.fieldName}.slice(0, 10) : data.${item.fieldName}) : '';
                         </#if>
                         <#if item.getEdit().type?? && item.getEdit().type == 'CHECKBOX'>
@@ -349,33 +356,100 @@
                 .catch(err => layer.msg(err))
         }
 
-        // 基于准备好的dom，初始化echarts实例
-        var myChart = echarts.init(document.getElementById('echarts'));
+        function openChart() {
+            layer.open({
+                type: 1, // page 层类型
+                title: '图表',
+                area: ['80%', 'auto'],
+                content: $('#echarts-layer-wrapper'),
+                btn: ['关闭'],
+                btn1: function (index, layero, that) {
+                    layer.close(index);
+                },
+            });
 
-        // 指定图表的配置项和数据
-        var option = {
-            title: {
-                text: 'ECharts 入门示例'
-            },
-            tooltip: {},
-            legend: {
-                data: ['销量']
-            },
-            xAxis: {
-                data: ['衬衫', '羊毛衫', '雪纺衫', '裤子', '高跟鞋', '袜子']
-            },
-            yAxis: {},
-            series: [
+            // 基于准备好的dom，初始化echarts实例
+            var myChart = echarts.init(document.getElementById('echarts'));
+
+            // 指定图表的配置项和数据
+            var option = {
+                title: {
+                    text: 'ECharts 入门示例'
+                },
+                tooltip: {},
+                legend: {
+                    data: ['销量']
+                },
+                xAxis: {
+                    data: ['衬衫', '羊毛衫', '雪纺衫', '裤子', '高跟鞋', '袜子']
+                },
+                yAxis: {},
+                series: [
+                    {
+                        name: '销量',
+                        type: 'bar',
+                        data: [5, 20, 36, 10, 10, 20]
+                    }
+                ]
+            };
+
+            // 使用刚指定的配置项和数据显示图表。
+            myChart.setOption(option);
+        }
+
+        // 渲染
+        transfer.render({
+            elem: '#x-transfer',
+            width: 200,
+            height: 300,
+            title: ['候选x轴', '选中x轴'],
+            id: 'x-transfer-inst',
+            data: [
+                <#list data.cols as item>
+                <#if item.getView().show && item.getType() != 'NUMBER' && !item.key>
                 {
-                    name: '销量',
-                    type: 'bar',
-                    data: [5, 20, 36, 10, 10, 20]
-                }
-            ]
-        };
+                    value: '${item.fieldName}',
+                    title: '${item.desc}',
+                },
+                </#if>
+                </#list>
+            ],
+            onchange: function (obj, index) {
+                var getData1 = transfer.getData('x-transfer-inst');
+                var getData2 = transfer.getData('y-transfer-inst');
+                layer.alert('数据：' + JSON.stringify(getData1) + ' ' + JSON.stringify(getData2));
+            }
+        });
 
-        // 使用刚指定的配置项和数据显示图表。
-        myChart.setOption(option);
+        // 渲染
+        transfer.render({
+            elem: '#y-transfer',
+            width: 200,
+            height: 300,
+            title: ['候选y轴', '选中y轴'],
+            id: 'y-transfer-inst',
+            data: [
+                <#list data.cols as item>
+                <#if item.getView().show && item.getType() == 'NUMBER' && !item.key>
+                {
+                    value: '${item.fieldName}',
+                    title: '${item.desc}',
+                },
+                </#if>
+                </#list>
+            ],
+            onchange: function (obj, index) {
+                var getData1 = transfer.getData('x-transfer-inst');
+                var getData2 = transfer.getData('y-transfer-inst');
+                layer.alert('数据：' + JSON.stringify(getData1) + ' ' + JSON.stringify(getData2));
+            }
+        });
+
+        function showChart(){
+            var getData1 = transfer.getData('x-transfer-inst');
+            var getData2 = transfer.getData('y-transfer-inst');
+            layer.alert('数据：' + JSON.stringify(getData1) + ' ' + JSON.stringify(getData2));
+        }
     })
 </script>
 </body>
