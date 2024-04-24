@@ -122,8 +122,41 @@
 </div>
 <div id="echarts-layer-wrapper" style="display: none;">
     <div style="width: 480px;height: 600px;float: left;">
-        <div id="x-transfer"></div>
-        <div id="y-transfer"></div>
+        <form class="layui-form layui-row layui-col-space16">
+            <div class="layui-col-md12">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">x轴</label>
+                    <div class="layui-input-block">
+                        <select name="xLabelValue">
+                            <option value="">请选择</option>
+                            <#list data.cols as item>
+                                <#if item.getView().show && item.getType() != 'NUMBER' && !item.key>
+                                    <option value="${item.fieldName}">${item.desc}</option>
+                                </#if>
+                            </#list>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="layui-col-md12">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">y轴</label>
+                    <div class="layui-input-block">
+                        <select name="yLabelValue">
+                            <option value="">请选择</option>
+                            <#list data.cols as item>
+                                <#if item.getView().show && item.getType() == 'NUMBER' && !item.key>
+                                    <option value="${item.fieldName}">${item.desc}</option>
+                                </#if>
+                            </#list>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="layui-btn-container layui-col-xs12" style="text-align: right;">
+                <button class="layui-btn" lay-submit lay-filter="draw-chart">绘制</button>
+            </div>
+        </form>
     </div>
     <div id="echarts" style="width: calc(100% - 500px);height: 600px;float: right;"></div>
 </div>
@@ -131,6 +164,13 @@
     layui.use(['table', 'form', 'util'], function () {
         let table = layui.table, form = layui.form, layer = layui.layer, $ = layui.$, laydate = layui.laydate,
             transfer = layui.transfer, util = layui.util;
+
+        let tableData = [];
+        let colNames = [
+            <#list data.cols as item>
+            {value:'',label:''},
+            </#list>
+        ];
 
         <#list data.cols as item>
         <#if item.getEdit().search && !item.key && item.getEdit().type?? && item.getEdit().type == 'DATE'>
@@ -197,6 +237,7 @@
             method: 'post',
             contentType: 'application/json',
             parseData: function (res) { // res 即为原始返回的数据
+                tableData = res.data;
                 return {
                     "code": res.code === 200 ? 0 : res.code, // 解析接口状态
                     "msg": res.message, // 解析提示文本
@@ -367,19 +408,27 @@
                     layer.close(index);
                 },
             });
+        }
+
+        form.on('submit(draw-chart)', function (data) {
+            if(data.field.xTitle != null && data.field.yTitle != null){
+
+            }
+        })
+
+        function showChart(xTitle,yTitle) {
+            var getData1 = transfer.getData('x-transfer-inst');
+            var getData2 = transfer.getData('y-transfer-inst');
+
+            let legendData = getData2.map(item => item.title)
+            let seriesData = getData2.map(item => item.title)
+
 
             // 基于准备好的dom，初始化echarts实例
             var myChart = echarts.init(document.getElementById('echarts'));
 
             // 指定图表的配置项和数据
             var option = {
-                title: {
-                    text: 'ECharts 入门示例'
-                },
-                tooltip: {},
-                legend: {
-                    data: ['销量']
-                },
                 xAxis: {
                     data: ['衬衫', '羊毛衫', '雪纺衫', '裤子', '高跟鞋', '袜子']
                 },
@@ -395,60 +444,6 @@
 
             // 使用刚指定的配置项和数据显示图表。
             myChart.setOption(option);
-        }
-
-        // 渲染
-        transfer.render({
-            elem: '#x-transfer',
-            width: 200,
-            height: 300,
-            title: ['候选x轴', '选中x轴'],
-            id: 'x-transfer-inst',
-            data: [
-                <#list data.cols as item>
-                <#if item.getView().show && item.getType() != 'NUMBER' && !item.key>
-                {
-                    value: '${item.fieldName}',
-                    title: '${item.desc}',
-                },
-                </#if>
-                </#list>
-            ],
-            onchange: function (obj, index) {
-                var getData1 = transfer.getData('x-transfer-inst');
-                var getData2 = transfer.getData('y-transfer-inst');
-                layer.alert('数据：' + JSON.stringify(getData1) + ' ' + JSON.stringify(getData2));
-            }
-        });
-
-        // 渲染
-        transfer.render({
-            elem: '#y-transfer',
-            width: 200,
-            height: 300,
-            title: ['候选y轴', '选中y轴'],
-            id: 'y-transfer-inst',
-            data: [
-                <#list data.cols as item>
-                <#if item.getView().show && item.getType() == 'NUMBER' && !item.key>
-                {
-                    value: '${item.fieldName}',
-                    title: '${item.desc}',
-                },
-                </#if>
-                </#list>
-            ],
-            onchange: function (obj, index) {
-                var getData1 = transfer.getData('x-transfer-inst');
-                var getData2 = transfer.getData('y-transfer-inst');
-                layer.alert('数据：' + JSON.stringify(getData1) + ' ' + JSON.stringify(getData2));
-            }
-        });
-
-        function showChart(){
-            var getData1 = transfer.getData('x-transfer-inst');
-            var getData2 = transfer.getData('y-transfer-inst');
-            layer.alert('数据：' + JSON.stringify(getData1) + ' ' + JSON.stringify(getData2));
         }
     })
 </script>
