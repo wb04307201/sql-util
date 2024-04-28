@@ -5,6 +5,7 @@
     <title>${data.name}-${data.desc}</title>
     <link rel="stylesheet" type="text/css" href="${contextPath}/entity/web/static/layui/2.9.8/css/layui.css"/>
     <script type="text/javascript" src="${contextPath}/entity/web/static/layui/2.9.8/layui.js"></script>
+    <script type="text/javascript" src="${contextPath}/entity/web/static/echarts/5.5.0/echarts.min.js"></script>
     <style>
         body {
             padding: 10px 20px 10px 20px;
@@ -119,9 +120,57 @@
         </#list>
     </div>
 </div>
+<div id="echarts-layer-wrapper" style="display: none;">
+    <div style="width: 480px;height: 600px;float: left;">
+        <form class="layui-form layui-row layui-col-space16" style="margin-top: 20px;">
+            <div class="layui-col-md12">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">x轴</label>
+                    <div class="layui-input-block">
+                        <select name="xLabelValue">
+                            <option value="">请选择</option>
+                            <#list data.cols as item>
+                                <#if item.getView().show && item.getType() != 'NUMBER' && !item.key>
+                                    <option value="${item.fieldName}">${item.desc}</option>
+                                </#if>
+                            </#list>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="layui-col-md12">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">y轴</label>
+                    <div class="layui-input-block">
+                        <select name="yLabelValue">
+                            <option value="">请选择</option>
+                            <#list data.cols as item>
+                                <#if item.getView().show && item.getType() == 'NUMBER' && !item.key>
+                                    <option value="${item.fieldName}">${item.desc}</option>
+                                </#if>
+                            </#list>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="layui-btn-container layui-col-xs12" style="text-align: right;">
+                <button class="layui-btn" lay-submit lay-filter="draw-chart">绘制</button>
+            </div>
+        </form>
+    </div>
+    <div id="echarts" style="width: calc(100% - 500px);height: 600px;float: right;"></div>
+</div>
 <script>
     layui.use(['table', 'form', 'util'], function () {
-        let table = layui.table, form = layui.form, layer = layui.layer, $ = layui.$, laydate = layui.laydate;
+        let table = layui.table, form = layui.form, layer = layui.layer, $ = layui.$, laydate = layui.laydate,
+            transfer = layui.transfer, util = layui.util;
+
+        let tableData = [];
+        let colNames = [
+            <#list data.cols as item>
+            {value: '${item.fieldName}', label: '${item.desc}'},
+            </#list>
+        ];
 
         <#list data.cols as item>
         <#if item.getEdit().search && !item.key && item.getEdit().type?? && item.getEdit().type == 'DATE'>
@@ -175,7 +224,7 @@
                         </#list>
                         return ''
                     }, </#if>
-                    <#if !item.getView().translatable && item.field.getType().getSimpleName() == 'Date'>templet: function (d) {
+                    <#if !item.getView().translatable && item.getType() == 'DATE'>templet: function (d) {
                         return d.${item.fieldName} ? (d.${item.fieldName}.length > 10 ? d.${item.fieldName}.slice(0, 10) : d.${item.fieldName}) : ''
                     }, </#if>
                 },
@@ -188,6 +237,7 @@
             method: 'post',
             contentType: 'application/json',
             parseData: function (res) { // res 即为原始返回的数据
+                tableData = res.data;
                 return {
                     "code": res.code === 200 ? 0 : res.code, // 解析接口状态
                     "msg": res.message, // 解析提示文本
@@ -195,8 +245,13 @@
                     "data": res.data // 解析数据列表
                 };
             },
-            // height: 'full-155',
+            // height: 'full',
             toolbar: '#table-toolbar',
+            defaultToolbar: ['filter', 'exports', 'print', {
+                title: '图表',
+                layEvent: 'LAYTABLE_CHART',
+                icon: 'layui-icon-chart'
+            }],
         });
 
         // 头部工具栏事件
@@ -218,6 +273,9 @@
                     if (checkStatus.data.length === 0)
                         return layer.msg('请选择至少一行');
                     delRow(checkStatus.data);
+                    break;
+                case 'LAYTABLE_CHART':
+                    openChart();
                     break;
             }
         });
@@ -323,7 +381,7 @@
                     if (res.code === 200) {
                         let data = res.data;
                         <#list data.cols as item>
-                        <#if item.getEdit().show && item.field.getType().getSimpleName() == 'Date'>
+                        <#if item.getEdit().show && item.getType() == 'DATE'>
                         data.${item.fieldName} = data.${item.fieldName} ? (data.${item.fieldName}.length > 10 ? data.${item.fieldName}.slice(0, 10) : data.${item.fieldName}) : '';
                         </#if>
                         <#if item.getEdit().type?? && item.getEdit().type == 'CHECKBOX'>
@@ -337,6 +395,68 @@
                     }
                 })
                 .catch(err => layer.msg(err))
+        }
+
+        function openChart() {
+            layer.open({
+                type: 1, // page 层类型
+                title: '图表',
+                area: ['80%', 'auto'],
+                content: $('#echarts-layer-wrapper'),
+                btn: ['关闭'],
+                btn1: function (index, layero, that) {
+                    layer.close(index);
+                },
+            });
+        }
+
+        form.on('submit(draw-chart)', function (data) {
+            if (data.field.xLabelValue != null && data.field.yLabelValue != null) {
+                showChart(data.field.xLabelValue, data.field.yLabelValue)
+            }
+            return false;
+        })
+
+        function showChart(xLabelValue, yLabelValue) {
+            let yTitleName = colNames.filter(item => item.value === yLabelValue)[0].label
+            let groupSum = tableData.reduce((acc, item) => {
+                acc[item[xLabelValue]] = (acc[item[xLabelValue]] || 0) + item[yLabelValue];
+                return acc;
+            }, {});
+            let xAxisData = Object.keys(groupSum)
+            let serieData = Object.values(groupSum)
+
+
+            // 基于准备好的dom，初始化echarts实例
+            var myChart = echarts.init(document.getElementById('echarts'));
+
+            // 指定图表的配置项和数据
+            var option = {
+                toolbox: {
+                    show: true,
+                    feature: {
+                        dataView: { readOnly: false },
+                        magicType: { type: ['line', 'bar'] },
+                        saveAsImage: {}
+                    }
+                },
+                xAxis: {
+                    data: xAxisData
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: [
+                    {
+                        name: yTitleName,
+                        type: 'bar',
+                        data: serieData
+                    }
+                ]
+            };
+
+            // 使用刚指定的配置项和数据显示图表。
+            myChart.setOption(option);
         }
     })
 </script>
