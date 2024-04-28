@@ -43,7 +43,7 @@
 <dependency>
     <groupId>com.gitee.wb04307201</groupId>
     <artifactId>sql-util</artifactId>
-    <version>1.3.5.1</version>
+    <version>1.3.6</version>
 </dependency>
 ```
 
@@ -265,5 +265,8 @@ public class InitEntityWeb implements ApplicationRunner {
 ```
 
 ###### 通过id访问页面
-http://ip:port/entity/view/1111  
+http://ip:port/entity/view/1111
+单表维护  
+![img.png](img.png)
+绘制图表  
 ![img_1.png](img_1.png)

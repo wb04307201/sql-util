@@ -122,7 +122,7 @@
 </div>
 <div id="echarts-layer-wrapper" style="display: none;">
     <div style="width: 480px;height: 600px;float: left;">
-        <form class="layui-form layui-row layui-col-space16">
+        <form class="layui-form layui-row layui-col-space16" style="margin-top: 20px;">
             <div class="layui-col-md12">
                 <div class="layui-form-item">
                     <label class="layui-form-label">x轴</label>
@@ -168,7 +168,7 @@
         let tableData = [];
         let colNames = [
             <#list data.cols as item>
-            {value:'',label:''},
+            {value: '${item.fieldName}', label: '${item.desc}'},
             </#list>
         ];
 
@@ -411,17 +411,20 @@
         }
 
         form.on('submit(draw-chart)', function (data) {
-            if(data.field.xTitle != null && data.field.yTitle != null){
-
+            if (data.field.xLabelValue != null && data.field.yLabelValue != null) {
+                showChart(data.field.xLabelValue, data.field.yLabelValue)
             }
+            return false;
         })
 
-        function showChart(xTitle,yTitle) {
-            var getData1 = transfer.getData('x-transfer-inst');
-            var getData2 = transfer.getData('y-transfer-inst');
-
-            let legendData = getData2.map(item => item.title)
-            let seriesData = getData2.map(item => item.title)
+        function showChart(xLabelValue, yLabelValue) {
+            let yTitleName = colNames.filter(item => item.value === yLabelValue)[0].label
+            let groupSum = tableData.reduce((acc, item) => {
+                acc[item[xLabelValue]] = (acc[item[xLabelValue]] || 0) + item[yLabelValue];
+                return acc;
+            }, {});
+            let xAxisData = Object.keys(groupSum)
+            let serieData = Object.values(groupSum)
 
 
             // 基于准备好的dom，初始化echarts实例
@@ -429,15 +432,25 @@
 
             // 指定图表的配置项和数据
             var option = {
-                xAxis: {
-                    data: ['衬衫', '羊毛衫', '雪纺衫', '裤子', '高跟鞋', '袜子']
+                toolbox: {
+                    show: true,
+                    feature: {
+                        dataView: { readOnly: false },
+                        magicType: { type: ['line', 'bar'] },
+                        saveAsImage: {}
+                    }
                 },
-                yAxis: {},
+                xAxis: {
+                    data: xAxisData
+                },
+                yAxis: {
+                    type: 'value'
+                },
                 series: [
                     {
-                        name: '销量',
+                        name: yTitleName,
                         type: 'bar',
-                        data: [5, 20, 36, 10, 10, 20]
+                        data: serieData
                     }
                 ]
             };
