@@ -4,7 +4,8 @@
 [![star](https://gitee.com/wb04307201/sql-util/badge/star.svg?theme=dark)](https://gitee.com/wb04307201/sql-util)
 [![fork](https://gitee.com/wb04307201/sql-util/badge/fork.svg?theme=dark)](https://gitee.com/wb04307201/sql-util)
 [![star](https://img.shields.io/github/stars/wb04307201/sql-util)](https://github.com/wb04307201/sql-util)
-[![fork](https://img.shields.io/github/forks/wb04307201/sql-util)](https://github.com/wb04307201/sql-util)
+[![fork](https://img.shields.io/github/forks/wb04307201/sql-util)](https://github.com/wb04307201/sql-util)  
+![MIT](https://img.shields.io/badge/License-Apache2.0-blue.svg) ![JDK](https://img.shields.io/badge/JDK-17+-green.svg) ![SpringBoot](https://img.shields.io/badge/Srping%20Boot-3+-green.svg)
 
 > 提供一套高效、便捷的数据库操作工具集，  
 > 包括多数据源连接池、SQL语句执行工具类、SQL构造工具类、从实体类构造SQL工具类，  
@@ -18,6 +19,7 @@
 4. 使用[消息中间件](https://gitee.com/wb04307201/message-spring-boot-starter)、[实体SQL工具](https://gitee.com/wb04307201/sql-util)实现的[消息发送代码示例](https://gitee.com/wb04307201/message-demo)
 5. 使用[动态调度](https://gitee.com/wb04307201/dynamic-schedule-spring-boot-starter)、[消息中间件](https://gitee.com/wb04307201/message-spring-boot-starter)、[动态编译加载执行工具](https://gitee.com/wb04307201/loader-util)、[实体SQL工具](https://gitee.com/wb04307201/sql-util)实现的[在线编码、动态调度、发送钉钉群消息、快速构造web页面Demo](https://gitee.com/wb04307201/dynamic-schedule-demo)
 
+## 工具
 | 序号 | 工具类                 | 描述             |
 |----|---------------------|----------------|
 | 1  | MutilConnectionPool | 一个多数据源连接池      |
@@ -26,7 +28,9 @@
 | 4  | ModelSqlUtils       | 从实体类构造SQL，执行工具 |
 | 5  | EntityWeb       | 从实体类快速构造web页面  |
 
-## 第一步 增加 JitPack 仓库
+## 快速开始
+### 引入依赖
+增加 JitPack 仓库
 ```xml
 <repositories>
     <repository>
@@ -36,7 +40,6 @@
 </repositories>
 ```
 
-## 第二步 引入jar
 1.3.0版本后升级到jdk17 SpringBoot3+
 继续使用jdk 8请查看jdk8分支
 ```xml
@@ -47,7 +50,7 @@
 </dependency>
 ```
 
-## 第三步 使用工具
+### 使用
 #### MutilConnectionPool使用示例
 ```java
         // 判断数据源是否加载
