@@ -60,8 +60,8 @@ public class EntityWebService {
         };
 
         // 检查表是否已存在，不存在则创建
-        if (tableModel.getInit() && Boolean.FALSE.equals(MutilConnectionPool.run(url, sql::isTableExists)))
-            MutilConnectionPool.run(url, conn -> sql.create().parse().createTable(conn));
+        if (Boolean.TRUE.equals(tableModel.getInit()) && Boolean.FALSE.equals(MutilConnectionPool.run(url, sql::isTableExists)))
+            MutilConnectionPool.run(url, conn -> sql.create().createTable(conn));
     }
 
     /**
@@ -160,7 +160,7 @@ public class EntityWebService {
                 // 遍历列模型，筛选出键为true的列，并尝试使用参数中的值添加一个等价的查询条件
                 tableModel.getCols().stream().filter(TableModel.ColumnModel::getKey).findAny().ifPresent(col -> params.entrySet().stream().filter(entry -> entry.getKey().equalsIgnoreCase(col.getFieldName())).findAny().ifPresent(entry -> sql.addWhereEQ(col.getColumnName(), entry.getValue())));
                 // 执行查询并返回结果
-                return MutilConnectionPool.run(tableModel.getDs().getUrl(), conn -> sql.parse().executeQuery(conn)).get(0);
+                return MutilConnectionPool.run(tableModel.getDs().getUrl(), sql::executeQuery).get(0);
             } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
                      NoSuchMethodException e) {
                 // 处理构造SQL或执行查询过程中出现的异常
