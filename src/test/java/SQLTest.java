@@ -8,7 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import java.util.List;
 
 @SpringBootTest(classes = EntityWebConfig.class)
-class SQLDemoTest {
+class SQLTest {
 
     @Test
     void test() {

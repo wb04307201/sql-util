@@ -11,10 +11,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 @SpringBootTest(classes = EntityWebConfig.class)
-class ExecuteSqlUtilsDemoTest {
+class ExecuteSqlUtilsTest {
 
     @Test
     void test() throws SQLException {

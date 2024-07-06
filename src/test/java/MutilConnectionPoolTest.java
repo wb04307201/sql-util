@@ -6,10 +6,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import java.sql.Connection;
 import java.sql.SQLException;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 @SpringBootTest(classes = EntityWebConfig.class)
-class MutilConnectionPoolDemoTest {
+class MutilConnectionPoolTest {
 
     @Test
     void test() throws SQLException {
