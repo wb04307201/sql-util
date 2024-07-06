@@ -424,7 +424,7 @@ public class SQL<T> {
      *
      * @return SQL<T> 返回解析后的SQL对象。
      */
-    public SQL<T> parse() {
+    private SQL<T> parse() {
         atomicInteger = new AtomicInteger(0);
         switch (statementType) { // 根据语句类型执行相应的解析方法
             case SELECT:
