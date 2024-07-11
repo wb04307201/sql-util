@@ -8,9 +8,8 @@
 ![MIT](https://img.shields.io/badge/License-Apache2.0-blue.svg) ![JDK](https://img.shields.io/badge/JDK-17+-green.svg) ![SpringBoot](https://img.shields.io/badge/Srping%20Boot-3+-green.svg)
 
 > 提供一套高效、便捷的数据库操作工具集，  
-> 包括多数据源连接池、SQL语句执行工具类、SQL构造工具类、从实体类构造SQL工具类，  
-> 亦可以通过实体快速构造web页面，  
-> 帮助开发者简化数据库操作，提高开发效率。
+> 包括多数据源连接池管理类、SQL语句执行类、SQL语句构建器、实体类构建SQL语句并执行工具类，  
+> 亦可以快速构造普通的增删改查页面和功能。
 
 ## 代码示例
 1. 使用[实体SQL工具](https://gitee.com/wb04307201/sql-util)实现的[实体SQL工具Demo](https://gitee.com/wb04307201/sql-util-demo)
@@ -20,13 +19,13 @@
 5. 使用[动态调度](https://gitee.com/wb04307201/dynamic-schedule-spring-boot-starter)、[消息中间件](https://gitee.com/wb04307201/message-spring-boot-starter)、[动态编译加载执行工具](https://gitee.com/wb04307201/loader-util)、[实体SQL工具](https://gitee.com/wb04307201/sql-util)实现的[在线编码、动态调度、发送钉钉群消息、快速构造web页面Demo](https://gitee.com/wb04307201/dynamic-schedule-demo)
 
 ## 工具
-| 序号 | 工具类                 | 描述             |
-|----|---------------------|----------------|
-| 1  | MutilConnectionPool | 一个多数据源连接池      |
-| 2  | ExecuteSqlUtils     | sql语句执行工具类     |
-| 3  | SQL                 | SQL构造工具，执行工具   |
-| 4  | ModelSqlUtils       | 从实体类构造SQL，执行工具 |
-| 5  | EntityWeb       | 从实体类快速构造web页面  |
+| 序号 | 工具类                 | 描述               |
+|----|---------------------|------------------|
+| 1  | MutilConnectionPool | 多数据源连接池管理类       |
+| 2  | ExecuteSqlUtils     | SQL语句执行类         |
+| 3  | SQL                 | SQL语句构建器         |
+| 4  | ModelSqlUtils       | 实体类构建SQL语句并执行工具类 |
+| 5  | EntityWeb           | 快速构造普通的增删改查页面和功能 |
 
 ## 快速开始
 ### 引入依赖
